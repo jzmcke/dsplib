@@ -1,8 +1,18 @@
-CC=gcc
-OBJS=huffman_encode.o stats.o huffman_decode.o bitstream.o huffman_frontend.o
+GIT_ROOT = /home/joe/dsplib
+CC = gcc
+OBJS = $(GIT_ROOT)/huffman/src/huffman_encode.o
+OBJS += $(GIT_ROOT)/stats/src/stats.o
+OBJS += $(GIT_ROOT)/huffman/src/huffman_decode.o
+OBJS += $(GIT_ROOT)/bitstream/src/bitstream.o
+OBJS += $(GIT_ROOT)/huffman_support/frontend/huffman_frontend.o
+
+INC = -I$(GIT_ROOT)
 
 %.o: %.c
-	gcc -c $< -o $@
+	$(CC) -c $< -o $@ $(INC)
 
-huffman_frontend: $(OBJS)
-	gcc -o $@ $^
+$(GIT_ROOT)/huffman_support/make/huffman_frontend/huffman_frontend: $(OBJS)
+	$(CC) -o $@ $^ $(INC)
+
+clean :
+	rm $(OBJS)

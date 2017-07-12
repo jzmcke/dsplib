@@ -1,4 +1,7 @@
-#include "huffman_common.h"
+#ifndef HUFFMAN_ENCODE_H
+#define HUFFMAN_ENCODE_H
+
+#include "huffman/include/huffman_common.h"
 
 typedef struct symbol_freq_elem_s symbol_freq_elem;
 
@@ -23,3 +26,5 @@ huffman_encode_print_huffman_table(huffman_table *p_table);
 
 int
 huffman_entry_get_n_bits(huffman_entry *p_entry);
+
+#endif

@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "stats.h"
+#include "stats/include/stats.h"
 #include <string.h>
-#include "huffman_encode.h"
-#include "huffman_decode.h"
-#include "huffman_common.h"
+#include "huffman/include/huffman_encode.h"
+#include "huffman/include/huffman_decode.h"
+#include "huffman/include/huffman_common.h"
 
 #define DATA_RANGE ((1<<16)-1)
-#define NUM_SAMPLES_BYTES (100)
+#define NUM_SAMPLES_BYTES (2000)
 #define BITS_IN_BYTE 8
 #define HUFFMAN_FRONTEND_MAX_NUM_MODES 100
 
@@ -67,7 +67,7 @@ main(int argc, char **argv)
 		return -1;
 	}
 
-	p_enc = (char*)malloc(sizeof(unsigned char)*NUM_SAMPLES_BYTES);
+	p_enc = (char*)calloc(NUM_SAMPLES_BYTES,sizeof(unsigned char));
 
 	if (test_args.p_input_name != NULL)
 	{
@@ -128,10 +128,12 @@ main(int argc, char **argv)
 
 	fwrite(p_enc,1,n_enc,test_args.p_enc_file);
 	fclose(test_args.p_enc_file);
-
 	huffman_decode_process(p_table,p_enc,n_enc,p_dec,&n_dec);
 
-	fwrite(p_dec,1,n_dec,test_args.p_dec_file);
+	for (i=0; i<n_dec; i++)
+	{
+		fwrite(&p_dec[i],byte_width,1,test_args.p_dec_file);
+	}
 	fclose(test_args.p_dec_file);
 
 	return 0;

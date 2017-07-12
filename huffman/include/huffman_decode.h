@@ -1,4 +1,7 @@
-#include "huffman_common.h"
+#ifndef HUFFMAN_DECODE_H
+#define HUFFMAN_DECODE_H
+
+#include "huffman/include/huffman_common.h"
 
 int
 huffman_decode_process
@@ -12,7 +15,8 @@ huffman_decode_process
 int
 huffman_decode_lookup_table
 	(huffman_table *p_table
-	,unsigned int code
-	,unsigned int n_bits
+	,bitstream *p_code
 	,unsigned int *p_symbol
 	);
+
+#endif

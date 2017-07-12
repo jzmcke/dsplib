@@ -1,4 +1,4 @@
-#include "stats.h"
+#include "stats/include/stats.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>

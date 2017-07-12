@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "huffman_encode.h"
+#include "huffman/include/huffman_encode.h"
 
 #define HUFFMAN_ENCODE_OK 0
 #define HUFFMAN_ENCODE_ERROR -1
@@ -37,6 +37,7 @@ huffman_encode_process
 		return HUFFMAN_ENCODE_ERROR;
 	}
 
+	bitstream_clear(p_stream);
 	/* Write the header to the huffman bitstream */
 
 	/* Symbol number */
@@ -47,7 +48,7 @@ huffman_encode_process
 		return HUFFMAN_ENCODE_ERROR;
 	}
 
-	/* TODO: Add table */
+	/* TODO: Add table to bitstream */
 
 	for (i=0; i<n_data; i++)
 	{
@@ -65,7 +66,9 @@ huffman_encode_process
 			printf("Cannot locate codeword in Huffman table\n");
 			return HUFFMAN_ENCODE_ERROR;
 		}
+
 		ret = bitstream_concatenate(p_stream,p_table->p_entries[table_idx].p_code);
+
 		if (ret == BITSTREAM_ERROR)
 		{
 			printf("Error adding bits to bitstream\n");
@@ -298,8 +301,8 @@ huffman_encode_traverse_tree
 		bitstream_attach_array(&p_bs_codeword_1,p_data_1,BITSTREAM_BIG_ENDIAN);
 		bitstream_attach_array(&p_bs_codeword_2,p_data_2,BITSTREAM_BIG_ENDIAN);
 
-		bitstream_copy(p_bs_codeword_1, p_bs_code_word, (size_t)bitstream_get_num_bytes(p_bs_code_word));
-		bitstream_copy(p_bs_codeword_2, p_bs_code_word, (size_t)bitstream_get_num_bytes(p_bs_code_word));
+		bitstream_copy(p_bs_codeword_1, p_bs_code_word);
+		bitstream_copy(p_bs_codeword_2, p_bs_code_word);
 
 		bitstream_add_bits(p_bs_codeword_1,0x00,1);
 		ret = huffman_encode_traverse_tree(p_table,&(*pp_elem)->p_to_leaf_node1,p_bs_codeword_1);
@@ -344,6 +347,6 @@ huffman_encode_print_huffman_table(huffman_table *p_table)
 	{
 		char a_bs[HUFFMAN_ENCODER_MAX_CODEWORD_SIZE_BYTES];
 		bitstream_sprintf(a_bs,p_table->p_entries[i].p_code,8);
-		printf(" %8u           | 0x%s             | %d               \n",p_table->p_entries[i].symbol,a_bs,bitstream_get_n_bits_processed(p_table->p_entries[i].p_code));
+		printf(" %8u           | %s | %d               \n",p_table->p_entries[i].symbol,a_bs,bitstream_get_n_bits_processed(p_table->p_entries[i].p_code));
 	}
 }

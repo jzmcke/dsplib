@@ -1,3 +1,6 @@
+#ifndef STATS_H
+#define STATS_H
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,3 +33,5 @@ stats_gen_rand_bin
 
 void
 stats_print(mode_stats *p_stats);
+
+#endif
