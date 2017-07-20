@@ -3,7 +3,7 @@
 
 #include "bitstream/include/bitstream.h"
 
-#define HUFFMAN_HEADER_LENGTH_BITS (8)
+#define HUFFMAN_HEADER_LENGTH_BITS (32)
 
 typedef struct huffman_entry_s
 {

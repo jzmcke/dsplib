@@ -31,23 +31,24 @@ stats_gen_rand_bin
 	srand((unsigned) time(&t));
 
 	/* Allocate and randomise the locations of the modes */
-	p_modes = (unsigned int*)malloc(n_modes*sizeof(unsigned int));
-	p_modes_freq = (unsigned int*)malloc(n_modes*sizeof(unsigned int));
+	p_modes = (unsigned int*)calloc(n_modes, sizeof(unsigned int));
+	p_modes_freq = (unsigned int*)calloc(n_modes, sizeof(unsigned int));
+
 	for (i=0;i<n_modes;i++)
 	{
 		/* Continually set it until the indiex is unique */
 		int b_mode_present = 1;
 		while (b_mode_present)
 		{
-			int j = i-1;
+			int j;
 			b_mode_present = 0;
-			while(j>=0)
+			for (j = 0; j < i; j++)
 			{
 				if (p_modes[i] == p_modes[j])
 				{
 					b_mode_present = 1;
+					break;
 				}
-				j--;
 			}
 			p_modes[i] = rand()%data_range;
 		}

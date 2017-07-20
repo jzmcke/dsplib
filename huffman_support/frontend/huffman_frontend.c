@@ -7,7 +7,6 @@
 #include "huffman/include/huffman_common.h"
 
 #define DATA_RANGE ((1<<16)-1)
-#define NUM_SAMPLES_BYTES (2000)
 #define BITS_IN_BYTE 8
 #define HUFFMAN_FRONTEND_MAX_NUM_MODES 100
 
@@ -42,20 +41,18 @@ int
 main(int argc, char **argv)
 {
 	int i;
-	char *p_enc = NULL;
+	unsigned char *p_enc = NULL;
 	unsigned int *p_dec = NULL;
 	size_t n_enc; /* bytes */
 	unsigned int n_dec;
-	char *p_file_data = NULL;
+	unsigned char *p_file_data = NULL;
 	unsigned int *p_symbols = NULL;
 	unsigned int mask = 0x0;
-	unsigned int n_bits_in_bitstream;
 	unsigned int byte_width;
+	size_t n_read;
 	float av_bits_per_symbol;
 	huffman_table *p_table;
 	FILE *p_file;
-	FILE *p_enc_file;
-	FILE *p_dec_file;
 	mode_stats stats = {0};
 	huff_test test_args;
 	int ret;
@@ -67,7 +64,7 @@ main(int argc, char **argv)
 		return -1;
 	}
 
-	p_enc = (char*)calloc(NUM_SAMPLES_BYTES,sizeof(unsigned char));
+	p_enc = (unsigned char*)calloc(test_args.n_samples,sizeof(unsigned char));
 
 	if (test_args.p_input_name != NULL)
 	{
@@ -90,7 +87,7 @@ main(int argc, char **argv)
 		
 	}
 
-	p_file_data = (char *)calloc(test_args.n_samples,byte_width);
+	p_file_data = (unsigned char *)calloc(test_args.n_samples,byte_width);
 
 	/* Convert binary file into raw symbol array */
 	
@@ -98,13 +95,26 @@ main(int argc, char **argv)
 
 	p_dec = (unsigned int*)malloc(test_args.n_samples*sizeof(unsigned int));
 
-	fread(p_file_data,byte_width,test_args.n_samples,p_file);
+	n_read = fread(p_file_data,byte_width,test_args.n_samples,p_file);
+	if (n_read != test_args.n_samples)
+	{
+		printf("Expected number of samples not equal to number of samples read\n");
+		return -1;
+	}
 
-	mask = (1<<(BITS_IN_BYTE*byte_width)) - 1;
+	mask = (1<<BITS_IN_BYTE) - 1;
+
 
 	for (i=0; i<test_args.n_samples; i++)
 	{
-		p_symbols[i] = *((unsigned int*)(p_file_data+i*byte_width))&mask;
+		int j;
+		unsigned int data = 0;
+		int base_sample_idx = i*byte_width;
+		for (j = 0; j < byte_width; j++)
+		{
+			data ^= (((unsigned int) p_file_data[base_sample_idx+j])&mask) << (j * BITS_IN_BYTE);
+		}
+		p_symbols[i] = data;
 	}
 
 	fclose(p_file);
@@ -118,8 +128,11 @@ main(int argc, char **argv)
 	for (i=0; i<p_table->n_entries; i++)
 	{
 		float prob;
+		int n_bits;
 		prob = 1.0*p_table->p_entries[i].freq/test_args.n_samples;
-		av_bits_per_symbol += 1.0*prob*huffman_entry_get_n_bits(&p_table->p_entries[i]);
+		n_bits = huffman_entry_get_n_bits(&p_table->p_entries[i]);
+		
+		av_bits_per_symbol += 1.0*prob*n_bits;
 	}
 	printf("Av bits per symbol = %f\n",av_bits_per_symbol);
 	printf("Compression ratio  = %f\n",1.0*av_bits_per_symbol/(byte_width*BITS_IN_BYTE));

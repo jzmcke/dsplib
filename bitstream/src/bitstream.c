@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #define BITS_IN_BYTE 8
+#define BYTES_IN_INT 4
 #define BITSTREAM_PRINT_LEN 1024
 
 
 struct bitstream_s
 {
-	char *p_data;
+	unsigned char *p_data;
 	unsigned int n_tot_bits;
 	unsigned int byte_pos;
 	unsigned int bit_pos;
@@ -69,11 +70,10 @@ bitstream_concatenate
 	p_src->byte_pos = 0;
 	p_src->bit_pos = 0;
 
-	while (n < (src_len-2))
+	while (n < (src_len-1))
 	{
 		bitstream_read_bits(p_src,&temp,BITS_IN_BYTE);
 		bitstream_add_bits(p_dest,temp,BITS_IN_BYTE);
-		printf("hi");
 		n++;
 	}
 	bitstream_read_bits(p_src,&temp,init_bit_pos);
@@ -102,7 +102,7 @@ bitstream_read_substream
 	}
 	bitstream_read_bits(p_stream,&temp,n_overhang);
 	bitstream_add_bits(p_read,temp,n_overhang);
-
+	return BITSTREAM_OK;
 }
 
 int
@@ -201,7 +201,7 @@ bitstream_add_bits
 	
 	if (n_bits_overhang > 0)
 	{
-		mask_overhang = ((1<<n_bits)-1)- (1<<(n_bits-n_bits_overhang)-1);
+		mask_overhang = ((1<<n_bits)-1)- ((1<<(n_bits-n_bits_overhang))-1);
 		overhang_bits = (mask_overhang&data_bitstream)>>(n_bits-n_bits_overhang);
 		//printf("overhang_bits = 0x%04x, mask = 0x%04x\n",overhang_bits, mask_overhang);
 		p_stream->p_data[p_stream->byte_pos+1]^=overhang_bits;
@@ -236,6 +236,7 @@ bitstream_reset(bitstream *p_stream)
 	p_stream->byte_pos = 0;
 	p_stream->bit_pos = 0;
 	p_stream->n_tot_bits = 0;
+	return BITSTREAM_OK;
 }
 
 int
@@ -245,6 +246,7 @@ bitstream_clear(bitstream *p_stream)
 	p_stream->byte_pos = 0;
 	p_stream->bit_pos = 0;
 	p_stream->n_tot_bits = 0;
+	return BITSTREAM_OK;
 }
 
 int
@@ -261,6 +263,7 @@ bitstream_peek_substream
 
 	p_stream->byte_pos = init_byte_pos;
 	p_stream->bit_pos = init_bit_pos;
+	return BITSTREAM_OK;
 }
 
 int
@@ -283,14 +286,14 @@ bitstream_is_equal
 		}
 	}
 	mask = (1<<p1->bit_pos)-1;
-	if (p1->p_data[p1->byte_pos] != p2->p_data[p2->byte_pos])
+	if ((p1->p_data[p1->byte_pos]&mask) != (p2->p_data[p2->byte_pos]&mask))
 	{
 		return BITSTREAM_NOT_EQUAL;
 	}
 	return BITSTREAM_EQUAL;
 }
 
-char *
+unsigned char *
 bitstream_get_array(bitstream *p_stream)
 {
 	return p_stream->p_data;
@@ -349,6 +352,7 @@ bitstream_sprintf(char *p_dest, bitstream *p_bitstream, size_t n_bytes)
 		}
 		n--;
 	}
+	return BITSTREAM_OK;
 }
 
 void
@@ -369,4 +373,62 @@ bitstream_print_info(bitstream *p_bitstream)
 	printf("b_big_endian | %d\n",p_bitstream->b_big_endian);
 	printf("p_data       | ");
 	bitstream_printf(p_bitstream);
+}
+
+int
+bitstream_add_int
+	(bitstream *p_stream
+	,unsigned int bits
+	)
+{
+	int i;
+	unsigned int s;
+	if (p_stream->b_big_endian)
+	{
+		for (i=3; i>=0; i--)
+		{
+			s = (bits >> i*BITS_IN_BYTE) & (0x000000ff);
+			bitstream_add_bits(p_stream,s,BITS_IN_BYTE);
+		}
+	}
+	else
+	{
+		for (i=0; i<BYTES_IN_INT; i++)
+		{
+			s = (bits >> i*BITS_IN_BYTE) & (0x000000ff);
+			bitstream_add_bits(p_stream,s,BITS_IN_BYTE);
+		}
+	}
+	
+	return BITSTREAM_OK;
+}
+
+int
+bitstream_read_int
+	(bitstream *p_stream
+	,unsigned int *p_int
+	)
+{
+	int i;
+	*p_int = 0;
+	if (p_stream->b_big_endian)
+	{
+		for (i=3; i>=0; i--)
+		{
+			unsigned int t;
+			bitstream_read_bits(p_stream,&t,BITS_IN_BYTE);
+			*p_int = (*p_int)^((t & 0xff)<<(i*BITS_IN_BYTE));
+		}
+	}
+	else
+	{
+		for (i=0; i<4; i++)
+		{
+			unsigned int t;
+			bitstream_read_bits(p_stream,&t,BITS_IN_BYTE);
+			*p_int = (*p_int)^((t & 0xff)<<(i*BITS_IN_BYTE));
+		}
+	}
+	
+	return BITSTREAM_OK;
 }

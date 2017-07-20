@@ -111,6 +111,38 @@ test_compare(void)
 
 }
 
+void 
+test_add_int(void)
+{
+	unsigned char a_char_array[TEST_BITSTREAM_MAX_BYTES] = {0};
+	unsigned int test = 256;
+	unsigned int read;
+	bitstream *p_bitstream;
+
+	printf("test = 0x%08x\n",test);
+	bitstream_attach_array(&p_bitstream,a_char_array,BITSTREAM_LITTLE_ENDIAN);
+	bitstream_add_int(p_bitstream,test);
+	printf("Little endian case:\n");
+	bitstream_printf(p_bitstream);
+	bitstream_reset(p_bitstream);
+	bitstream_read_int(p_bitstream,&read);
+	printf("read = %d\n",read);W
+	printf("Equal = %d\n", read == test);
+	bitstream_clear(p_bitstream);
+	
+
+	bitstream_attach_array(&p_bitstream,a_char_array,BITSTREAM_BIG_ENDIAN);
+	bitstream_add_int(p_bitstream,test);
+	printf("Big endian case:\n:");
+	bitstream_printf(p_bitstream);
+	bitstream_reset(p_bitstream);
+	bitstream_read_int(p_bitstream,&read);
+	printf("read = %d\n",read);
+	printf("Equal = %d\n", read == test);
+
+
+}
+
 int
 main(int argc, char **argv)
 {
@@ -129,5 +161,9 @@ main(int argc, char **argv)
 
 	printf("----- Test compare -----\n");
 	test_compare();
+
+	printf("----- Test add int -----\n");
+	test_add_int();
+
 	return 0;
 }

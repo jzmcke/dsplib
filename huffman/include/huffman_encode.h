@@ -10,7 +10,7 @@ huffman_encode_process
 	(huffman_table *p_table
 	,unsigned int *p_in
 	,unsigned int n_data
-	,char *p_out
+	,unsigned char *p_out
 	,size_t *p_n_out
 	);
 

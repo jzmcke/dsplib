@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "huffman/include/huffman_encode.h"
+#include "huffman/include/huffman_common.h"
 
 #define HUFFMAN_ENCODE_OK 0
 #define HUFFMAN_ENCODE_ERROR -1
 #define HUFFMAN_ENCODER_MAX_CODEWORD_SIZE_BYTES (64) /* Yes, I mean 64 bytes */
 #define BITS_IN_INT (32)
+
 
 struct symbol_freq_elem_s
 {
@@ -23,7 +25,7 @@ huffman_encode_process
 	(huffman_table *p_table
 	,unsigned int *p_in
 	,unsigned int n_data
-	,char *p_out
+	,unsigned char *p_out
 	,size_t *p_n_out
 	)
 {
@@ -41,13 +43,12 @@ huffman_encode_process
 	/* Write the header to the huffman bitstream */
 
 	/* Symbol number */
-	ret = bitstream_add_bits(p_stream,n_data,8);
+	ret = bitstream_add_int(p_stream,n_data);
 	if (ret == BITSTREAM_ERROR)
 	{	
 		printf("Error adding header to bitstream\n");
 		return HUFFMAN_ENCODE_ERROR;
 	}
-
 	/* TODO: Add table to bitstream */
 
 	for (i=0; i<n_data; i++)
@@ -68,7 +69,6 @@ huffman_encode_process
 		}
 
 		ret = bitstream_concatenate(p_stream,p_table->p_entries[table_idx].p_code);
-
 		if (ret == BITSTREAM_ERROR)
 		{
 			printf("Error adding bits to bitstream\n");
@@ -116,7 +116,7 @@ huffman_encode_get_table
 	symbol_freq_elem **pp_current_layer_nodes;
 	unsigned int n_layer_nodes;
 	bitstream *p_bs_zeros;
-	char p_zeros[HUFFMAN_ENCODER_MAX_CODEWORD_SIZE_BYTES] = {0};
+	unsigned char p_zeros[HUFFMAN_ENCODER_MAX_CODEWORD_SIZE_BYTES] = {0};
 
 	bitstream_attach_array(&p_bs_zeros,p_zeros,BITSTREAM_BIG_ENDIAN);
 
@@ -149,7 +149,7 @@ huffman_encode_get_table
 		}
 
 		/* Ensure list remains ordered with respect to frequency */
-		while ((p_elem->freq > (p_elem-1)->freq) && (p_elem != p_symbol_freq_map))
+		while (p_elem != p_symbol_freq_map && (p_elem->freq > (p_elem-1)->freq))
 		{
 				symbol_freq_elem t;
 				t = *(p_elem-1);
@@ -342,11 +342,11 @@ void
 huffman_encode_print_huffman_table(huffman_table *p_table)
 {
 	int i;
-	printf(" Symbol             | Code-word          | Bits consumed      \n");
+	printf(" Symbol          | Code-word          | Bits consumed      \n");
 	for (i=0; i<p_table->n_entries; i++)
 	{
 		char a_bs[HUFFMAN_ENCODER_MAX_CODEWORD_SIZE_BYTES];
 		bitstream_sprintf(a_bs,p_table->p_entries[i].p_code,8);
-		printf(" %8u           | %s | %d               \n",p_table->p_entries[i].symbol,a_bs,bitstream_get_n_bits_processed(p_table->p_entries[i].p_code));
+		printf(" %15u | %s |             %d   \n",p_table->p_entries[i].symbol,a_bs,bitstream_get_n_bits_processed(p_table->p_entries[i].p_code));
 	}
 }

@@ -10,7 +10,7 @@
 int
 huffman_decode_process
 	(huffman_table *p_table
-	,char *p_in
+	,unsigned char *p_in
 	,size_t n_data
 	,unsigned int *p_out
 	,unsigned int *p_n_out
@@ -21,15 +21,12 @@ huffman_decode_process
 	int n_bits;
 	bitstream *p_bitstream;
 	bitstream *p_temp;
-	unsigned int code;
 	unsigned int symbol;
 	unsigned int out_idx = 0;
-	unsigned int b_end = 0;
 	unsigned int b_match;
 	unsigned int n_symbols;
 	unsigned char p_temp_bytes[HUFFMAN_DECODER_MAX_CODEWORD_SIZE_BYTES] = {0}; 
 	int n = 0;
-
 	ret = bitstream_attach_array(&p_bitstream, p_in, BITSTREAM_BIG_ENDIAN);
 
 	bitstream_attach_array(&p_temp, p_temp_bytes, BITSTREAM_BIG_ENDIAN);
@@ -41,10 +38,9 @@ huffman_decode_process
 	}
 
 	/* Read the number of symbols in the bitstream */
-	bitstream_read_bits(p_bitstream,&n_symbols,HUFFMAN_HEADER_LENGTH_BITS);
+	bitstream_read_int(p_bitstream,&n_symbols);
 
 	/* Keep decoding until finished */
-	printf("n_symbols = %d\n",n_symbols);
 	while ((n_symbols-n) > 0)
 	{
 		idx = 0;
@@ -56,7 +52,7 @@ huffman_decode_process
 			b_match = huffman_decode_lookup_table(p_table,p_temp,&symbol);
 			idx++;
 		} while ((b_match != HUFFMAN_TABLE_MATCH) && idx < p_table->n_entries);
-
+		bitstream_clear(p_temp);
 		bitstream_read_substream(p_bitstream,p_temp,n_bits);
 
 		p_out[out_idx++] = symbol;
@@ -68,7 +64,6 @@ huffman_decode_process
 	}
 
 	*p_n_out = out_idx;
-	printf("Decoder process\n");
 	return HUFFMAN_DECODE_OK;
 }
 

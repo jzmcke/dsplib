@@ -77,12 +77,24 @@ bitstream_read_bits
 	);
 
 int
+bitstream_add_int
+	(bitstream *p_stream
+	,unsigned int bits
+	);
+
+int
+bitstream_read_int
+	(bitstream *p_stream
+	,unsigned int *p_int
+	);
+
+int
 bitstream_get_n_bits_processed(bitstream *p_stream);
 
 unsigned char
 bitstream_flip_bits(unsigned char data,int n_bits);
 
-char *
+unsigned char *
 bitstream_get_array(bitstream *p_stream);
 
 int
