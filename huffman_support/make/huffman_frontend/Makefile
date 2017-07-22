@@ -14,7 +14,7 @@ CFLAGS_DEBUG = ${CFLAGS}
 CFLAGS_DEBUG += -g
 
 CFLAGS_RELEASE = ${CFLAGS}
-CFLAGS_RELEASE += -O2
+CFLAGS_RELEASE += -O3
 
 INC = -I$(GIT_ROOT)
 
@@ -25,7 +25,7 @@ INC = -I$(GIT_ROOT)
 	$(CC) ${CFLAGS_DEBUG} -c $< -o $@ $(INC)
 
 release: $(OBJS)
-	$(CC) ${CFLAGS_RELEASE} -o huffman_frontend $^ $(INC)
+	$(CC) ${CFLAGS_RELEASE} -o huffman_frontend_release $^ $(INC)
 
 debug: $(DEBUG_OBJS)
 	$(CC) ${CFLAGS_DEBUG} -o huffman_frontend_debug $^ $(INC)
