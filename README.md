@@ -13,4 +13,9 @@
 #
 # 3. Random binary generator
 # STATUS: Complete
+#
+# 4. DFT/IDFT/FFT
+# STATUS: Sufficient for use on small (<64000) sample sizes. Definitely
+# 	  sufficient for real-time processing.
+# Todo: Implement IFFT
 	
