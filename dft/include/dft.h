@@ -22,3 +22,10 @@ fft_forward_process
     ,float *p_out
     ,int N
     );
+
+int
+fft_inverse_process
+    (float *p_in
+    ,float *p_out
+    ,int N
+    );

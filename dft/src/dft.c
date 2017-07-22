@@ -15,6 +15,14 @@ _fft_core_process
     ,int seperation
     );
 
+int
+_ifft_core_process
+    (float *p_in
+    ,float *p_res
+    ,int N
+    ,int seperation
+    );
+
 void
 _dft_print_cplx
     (float *p_cplx);
@@ -67,7 +75,6 @@ fft_forward_process
     {
         _dft_re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
     }
-    printf("Finished FFT\n");
     return DFT_OK;
 }
 
@@ -102,6 +109,67 @@ _fft_core_process
         {
 
             _dft_get_twiddle(p_twiddle,k,1,N);
+
+            _dft_cplx_cplx_mult(&p_ok[2*k],p_twiddle,&p_ok[2*k]);
+            /* Fill out the output */
+            _dft_cplx_cplx_add(&p_ek[2*k],&p_ok[2*k],&p_res[2*k]);
+
+            _dft_re_cplx_mult(-1,&p_ok[2*k],&p_ok[2*k]);
+
+            _dft_cplx_cplx_add(&p_ek[2*k],&p_ok[2*k],&p_res[2*(k+N/2)]);
+
+        }
+    }
+
+    return DFT_OK;
+}
+
+int
+fft_inverse_process
+    (float *p_in
+    ,float *p_out
+    ,int N
+    )
+{
+    _ifft_core_process(p_in,p_out,N,1);
+    for (int i=0; i<2*N; i+=2)
+    {
+        _dft_re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
+    }
+    return DFT_OK;
+}
+
+int
+_ifft_core_process
+    (float *p_in
+    ,float *p_res
+    ,int N
+    ,int seperation
+    )
+{
+    
+    if (N==1)
+    {
+        /* Accumulate output, assuming initialised to 0 */
+        *p_res = *p_in;
+        *(p_res+1) = *(p_in+1);
+    }
+    else
+    {
+        float *p_odd_start = p_in+2*seperation;
+        float *p_even_start = p_in;
+        float p_ek[2*MAX_FFT_SAMPLES] = {0};
+        float p_ok[2*MAX_FFT_SAMPLES] = {0};
+        float p_twiddle[2] = {0};
+
+        _ifft_core_process(p_even_start,p_ek,N/2,2*seperation);
+                
+        _ifft_core_process(p_odd_start,p_ok,N/2,2*seperation);
+
+        for (int k=0; k < N/2; k++)
+        {
+
+            _dft_get_twiddle(p_twiddle,k,-1,N);
 
             _dft_cplx_cplx_mult(&p_ok[2*k],p_twiddle,&p_ok[2*k]);
             /* Fill out the output */

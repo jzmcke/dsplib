@@ -120,7 +120,7 @@ main
         ,sig_len
         );
 
-    dft_inverse_process(p_dft,p_inv,sig_len);
+    fft_inverse_process(p_dft,p_inv,sig_len);
 
 
     strcpy(p_write_name,cfg.p_output_name);
