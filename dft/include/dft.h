@@ -1,6 +1,7 @@
 /* DFT definitions */
 #define DFT_OK 			(0)
 #define DFT_ERROR 		(-1)
+#define DFT_MAX_SAMPLES (524288)
 
 int
 dft_forward_process

@@ -5,8 +5,6 @@
 #include "dft/include/dft.h"
 #include "dft/include/util.h"
 
-#define MAX_FFT_SAMPLES (524288)
-
 int
 _fft_core_process
     (float *p_in
@@ -72,7 +70,7 @@ fft_forward_process
     ,int N
     )
 {
-    float p_scratch[2*MAX_FFT_SAMPLES] = {0};
+    float p_scratch[2*DFT_MAX_SAMPLES] = {0};
     _fft_core_process(p_in,p_out,N,1,p_scratch);
     for (int i=0; i<2*N; i+=2)
     {
@@ -102,8 +100,6 @@ _fft_core_process
         float *p_odd_start = p_in+2*seperation;
         float *p_ek = p_res;
         float *p_ok = p_res + 2*seperation;
-        //float p_ek[2*MAX_FFT_SAMPLES] = {0};
-        //float p_ok[2*MAX_FFT_SAMPLES] = {0};
         float p_twiddle[2] = {0};
 
         _fft_core_process(p_even_start,p_ek,N/2,2*seperation,p_scratch);
@@ -149,7 +145,7 @@ fft_inverse_process
     ,int N
     )
 {
-    float p_scratch[2*MAX_FFT_SAMPLES] = {0};
+    float p_scratch[2*DFT_MAX_SAMPLES] = {0};
     _ifft_core_process(p_in,p_out,N,1,p_scratch);
     for (int i=0; i<2*N; i+=2)
     {
