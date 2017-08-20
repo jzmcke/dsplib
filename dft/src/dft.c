@@ -4,6 +4,7 @@
 #include <string.h>
 #include "dft/include/dft.h"
 #include "dft/include/util.h"
+#include "cplx_math/include/cplx_math.h"
 
 int
 _fft_core_process
@@ -23,17 +24,6 @@ _ifft_core_process
     ,float *p_scratch
     );
 
-void
-_dft_print_cplx
-    (float *p_cplx);
-
-int
-_dft_re_cplx_mult
-    (float re
-    ,float *p_cplx
-    ,float *p_out
-    );
-
 int
 _dft_get_twiddle
     (float *p_twiddle
@@ -42,26 +32,7 @@ _dft_get_twiddle
     ,int N
     );
 
-int
-_dft_cplx_cplx_mult_acc
-    (float *p_in1
-    ,float *p_in2
-    ,float *p_out
-    );
 
-int
-_dft_cplx_cplx_mult
-    (float *p_in1
-    ,float *p_in2
-    ,float *p_out
-    );
-
-int
-_dft_cplx_cplx_add
-    (float *p_in1
-    ,float *p_in2
-    ,float *p_out
-    );
 
 int
 fft_forward_process
@@ -74,7 +45,7 @@ fft_forward_process
     _fft_core_process(p_in,p_out,N,1,p_scratch);
     for (int i=0; i<2*N; i+=2)
     {
-        _dft_re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
+        re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
     }
     return DFT_OK;
 }
@@ -113,13 +84,13 @@ _fft_core_process
 
             _dft_get_twiddle(p_twiddle,k,1,N);
 
-            _dft_cplx_cplx_mult(&p_ok[2*k*(2*seperation)],p_twiddle,&p_ok[2*k*(2*seperation)]);
+            cplx_cplx_mult(&p_ok[2*k*(2*seperation)],p_twiddle,&p_ok[2*k*(2*seperation)]);
             /* Fill out the output */
-            _dft_cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res1);
+            cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res1);
 
-            _dft_re_cplx_mult(-1,&p_ok[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)]);
+            re_cplx_mult(-1,&p_ok[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)]);
 
-            _dft_cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res2);
+            cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res2);
             
             p_scratch[2*k*seperation] = p_temp_res1[0];
             p_scratch[2*k*seperation+1] = p_temp_res1[1];
@@ -149,7 +120,7 @@ fft_inverse_process
     _ifft_core_process(p_in,p_out,N,1,p_scratch);
     for (int i=0; i<2*N; i+=2)
     {
-        _dft_re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
+        re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
     }
     return DFT_OK;
 }
@@ -189,13 +160,13 @@ _ifft_core_process
 
             _dft_get_twiddle(p_twiddle,k,-1,N);
 
-            _dft_cplx_cplx_mult(&p_ok[2*k*(2*seperation)],p_twiddle,&p_ok[2*k*(2*seperation)]);
+            cplx_cplx_mult(&p_ok[2*k*(2*seperation)],p_twiddle,&p_ok[2*k*(2*seperation)]);
             /* Fill out the output */
-            _dft_cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res1);
+            cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res1);
 
-            _dft_re_cplx_mult(-1,&p_ok[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)]);
+            re_cplx_mult(-1,&p_ok[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)]);
 
-            _dft_cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res2);
+            cplx_cplx_add(&p_ek[2*k*(2*seperation)],&p_ok[2*k*(2*seperation)],p_temp_res2);
             
             p_scratch[2*k*seperation] = p_temp_res1[0];
             p_scratch[2*k*seperation+1] = p_temp_res1[1];
@@ -214,88 +185,7 @@ _ifft_core_process
     return DFT_OK;
 }
 
-/* Performs a complex addition */
-int
-_dft_cplx_cplx_add
-    (float *p_in1
-    ,float *p_in2
-    ,float *p_out
-    )
-{
-    *p_out = *p_in1 + *p_in2;
-    *(p_out+1) = *(p_in1+1) + *(p_in2+1);
-    return DFT_OK;
-}
 
-int
-_dft_re_cplx_mult
-    (float re
-    ,float *p_cplx
-    ,float *p_out
-    )
-{
-    p_out[0] = re*p_cplx[0];
-    p_out[1] = re*p_cplx[1];
-    return DFT_OK;
-}
-
-/* Performs complex multiply-accumulate on an array of type {Re1, Im1} x {Re2, Im2} */
-int
-_dft_cplx_cplx_mult_acc
-    (float *p_in1
-    ,float *p_in2
-    ,float *p_out
-    )
-{
-    float a_temp1[2];
-    float a_temp2[2];
-    a_temp1[0] = *p_in1; /* Needed to support case p_in1 == p_out */
-    a_temp1[1] = *(p_in1+1); /* Needed to support case p_in1 == p_out */
-    a_temp2[0] = *p_in2;
-    a_temp2[1] = *(p_in2+1);
-
-    /* Re*Re part */
-    *p_out += (a_temp1[0])*(a_temp2[0]);
-
-    /* Re*Imag part */
-    (*(p_out+1)) += (a_temp1[0])*(a_temp2[1]);
-
-    /* Imag*Re part */
-    (*(p_out+1)) += (a_temp1[1])*(a_temp2[0]);
-
-    /* Imag*Imag part */
-    *p_out += -(a_temp1[1])*(a_temp2[1]);
-    return DFT_OK;
-}
-
-/* Performs complex multiplication on an array of type {Re1, Im1} x {Re2, Im2} */
-int
-_dft_cplx_cplx_mult
-    (float *p_in1
-    ,float *p_in2
-    ,float *p_out
-    )
-{
-    float a_temp1[2];
-    float a_temp2[2];
-    a_temp1[0] = *p_in1; /* Needed to support case p_in1 == p_out */
-    a_temp1[1] = *(p_in1+1); /* Needed to support case p_in1 == p_out */
-    a_temp2[0] = *p_in2;
-    a_temp2[1] = *(p_in2+1);
-
-    /* Re*Re part */
-    *p_out = (a_temp1[0])*(a_temp2[0]);
-
-    /* Re*Imag part */
-    (*(p_out+1)) = (a_temp1[0])*(a_temp2[1]);
-
-    /* Imag*Re part */
-    (*(p_out+1)) += (a_temp1[1])*(a_temp2[0]);
-
-    /* Imag*Imag part */
-    *p_out += -(a_temp1[1])*(a_temp2[1]);
-    return DFT_OK;
-}
 
 /* Currently performs sin/cos calculation. Can be optimised to do table lookup */
 int
@@ -330,7 +220,7 @@ dft_forward_process
         for (n=0; n<N; n++)
         {
             _dft_get_twiddle(p_twiddle,k,n,N);
-            _dft_cplx_cplx_mult_acc(&p_in[2*n],p_twiddle,&p_out[2*k]);
+            cplx_cplx_mult_acc(&p_in[2*n],p_twiddle,&p_out[2*k]);
         }
         p_out[2*k] /= sqrt(N);
         p_out[2*k+1] /= sqrt(N);
@@ -373,12 +263,4 @@ dft_inverse_process
     }
     printf("Finished IDFT\n");
     return DFT_OK;
-}
-
-void
-_dft_print_cplx
-    (float *p_cplx
-    )
-{
-    printf("{%f, %f}\n",*p_cplx, *(p_cplx+1));
 }
