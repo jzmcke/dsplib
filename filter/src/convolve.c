@@ -1,6 +1,7 @@
 #include "filter/src/convolve.h"
 #include "cplx_math/include/cplx_math.h"
 #include <stdlib.h>
+#include <string.h>
 
 struct convolve_s
 {
@@ -17,7 +18,7 @@ convolve_init
 {
 	*pp_self = (convolve*)malloc(sizeof(convolve));
 
-	(*pp_self)->p_state = (float*)calloc(p_cfg->M,sizeof(float));
+	(*pp_self)->p_state = (float*)calloc(2*p_cfg->M,sizeof(float));
 	(*pp_self)->p_filt_coef = p_cfg->p_filt_coef;
 	(*pp_self)->M = p_cfg->M;
 	return CONVOLVE_OK;
@@ -40,6 +41,7 @@ convolve_overlap_add
 		{
 			cplx_cplx_mult_acc(&p_input[2*(i-j)],&p_self->p_filt_coef[2*j],res);
 		}
+		cplx_cplx_add(&p_self->p_state[2*i],res,res);
 		p_output[2*i] = res[0];
 		p_output[2*i+1] = res[1];
 	}
@@ -65,6 +67,9 @@ convolve_overlap_add
 		p_output[2*i] = res[0];
 		p_output[2*i+1] = res[1];
 	}
+
+	memcpy(p_self->p_state,&p_output[2*Nx],2*sizeof(float)*p_self->M);
+
 	*p_n_out = p_self->M + Nx;
 	return CONVOLVE_OK;
 }

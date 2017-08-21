@@ -2,7 +2,7 @@ GIT_ROOT = /home/joe/dsplib
 CC = gcc
 OBJS = $(GIT_ROOT)/filter/src/convolve.o
 OBJS += $(GIT_ROOT)/filter/src/fir_window.o
-OBJS += $(GIT_ROOT)/dft/src/dft.c
+OBJS += $(GIT_ROOT)/dft/src/dft.o
 OBJS += $(GIT_ROOT)/cplx_math/src/cplx_math.o
 OBJS += $(GIT_ROOT)/filter_support/frontend/filter_frontend.o
 
@@ -35,4 +35,4 @@ debug: $(DEBUG_OBJS)
 	$(CC) ${CFLAGS_DEBUG} -o filter_frontend_debug $^ $(LD_DIRS) $(LD_LIBS) $(INC)
 
 clean:
-	rm $(OBJS) $(DEBUG_OBJS) $(RELEASE_OBJS)
+	rm $(OBJS) $(DEBUG_OBJS) $(RELEASE_OBJS) filter_frontend_release filter_frontend_debug

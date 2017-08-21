@@ -136,13 +136,28 @@ filter_frontend_init(filter_frontend_cfg *p_cfg, filter_frontend **pp_self)
     (*pp_self)->N = p_cfg->N;
     (*pp_self)->p_filter = (float*)malloc(sizeof(float)*2*(*pp_self)->N);
     (*pp_self)->fc = p_cfg->fc;
+    (*pp_self)->b_type = p_cfg->b_type;
 
-    fir_window_design_low_pass
+    if ((*pp_self)->b_type == FILTER_TYPE_LOWPASS)
+    {
+        fir_window_design_low_pass
                     ((*pp_self)->p_filter
                     ,(*pp_self)->fc
                     ,(*pp_self)->fs_in
                     ,(*pp_self)->N
                     );
+    }
+    else
+    {
+        printf("Hi\n");
+        fir_window_design_high_pass
+                    ((*pp_self)->p_filter
+                    ,(*pp_self)->fc
+                    ,(*pp_self)->fs_in
+                    ,(*pp_self)->N
+                    );
+    }
+    
     {
         convolve_cfg cfg;
         cfg.M=(*pp_self)->N;
@@ -187,8 +202,6 @@ filter_frontend_process(filter_frontend *p_self)
         filter_frontend_rebuf(p_self->p_in,p_self->p_in_rebuf,p_self->block_size);
 
         convolve_overlap_add(p_self->p_convolve,p_self->p_in_rebuf,p_self->block_size,p_self->p_filtered,&n_out);
-
-        printf("n_out = %d\n",n_out);
 
         filter_frontend_unbuf(p_self->p_filtered,p_self->p_out,p_self->block_size);
 

@@ -84,6 +84,15 @@ cplx_cplx_mult
     return CPLX_MATH_OK;
 }
 
+/* Returns Re^2 + Im^2 */
+float
+cplx_square(float *p_in)
+{
+    float out;
+    out = (p_in[0])*(p_in[0]) + (p_in[1])*(p_in[1]);
+    return out;
+}
+
 void
 print_cplx
     (float *p_cplx

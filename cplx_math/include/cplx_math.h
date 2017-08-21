@@ -32,3 +32,8 @@ re_cplx_mult
     ,float *p_cplx
     ,float *p_out
     );
+
+float
+cplx_square
+    (float *p_in
+    );
