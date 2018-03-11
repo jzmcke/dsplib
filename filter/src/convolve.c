@@ -49,7 +49,7 @@ convolve_overlap_add
 	for (i=p_self->M; i<Nx; i++)
 	{
 		float res[2] = {0};
-		for (j=p_self->M; j>=0; j--)
+		for (j=0; j<=p_self->M; j++)
 		{
 			cplx_cplx_mult_acc(&p_input[2*(i-j)],&p_self->p_filt_coef[2*j],res);
 		}

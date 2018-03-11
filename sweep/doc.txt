@@ -1,0 +1,1 @@
+This module assists a designer to find a sweep that has an auto-correlation that is sufficient for the application. Can be used for impulse response estimation

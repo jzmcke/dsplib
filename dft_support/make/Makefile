@@ -2,7 +2,7 @@ CC=gcc
 GIT_ROOT=/home/joe/dsplib
 
 OBJS=$(GIT_ROOT)/dft/src/dft.o
-OBJS+=$(GIT_ROOT)/dft/src/util.o
+OBJS+=$(GIT_ROOT)/util/src/util.o
 OBJS+=$(GIT_ROOT)/dft/src/file.o
 OBJS+=$(GIT_ROOT)/dft_support/frontend/dft_frontend.o
 OBJS+=$(GIT_ROOT)/cplx_math/src/cplx_math.o

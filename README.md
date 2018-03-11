@@ -17,4 +17,18 @@
 #
 # 4. DFT/IDFT/FFT/IFFT
 # STATUS: Complete
-	
+# 
+# 5. Convolution implementation
+# STATUS: Complete
+#
+# 6. Generic linear filter (IIR/FIR) implementation
+# STATUS: Complete
+#
+# 7. Resampler
+# STATUS: Incomplete
+#
+# 8. Threading module
+# STATUS: Prototyping only in thread_support. No module developed.
+#
+# 9. Sweep design tool
+# STATUS: Complete

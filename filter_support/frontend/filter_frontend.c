@@ -1,6 +1,9 @@
 #include "filter/include/filter.h"
+#include "math.h"
 #include "/usr/include/sndfile.h"
 #include "dft/include/dft.h"
+#include "filter_support/scripts/fir_filter_pvt.h"
+#include "filter_support/scripts/iir_filter_pvt.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,10 +11,9 @@
 #define FILTER_FRONTEND_OK  (0)
 #define FILTER_FRONTEND_ERR (-1)
 
-#define SAMPLE_RATE 32000
 #define BLOCK_SIZE_MS 20
-#define FILTER_TYPE_LOWPASS  (0)
-#define FILTER_TYPE_HIGHPASS (1)
+#define FILTER_FRONTEND_TYPE_FIR  (0)
+#define FILTER_FRONTEND_TYPE_IIR  (1)
 
 typedef struct filter_frontend_cfg
 {
@@ -19,14 +21,13 @@ typedef struct filter_frontend_cfg
 	char 	        *p_out_name;
     char            *p_tfm_name;
 	unsigned int 	 N;
-	unsigned int     fc;
-	int 	         b_type;
+	int 	         type;
+    float            gain_db;
 } filter_frontend_cfg;
 
 typedef struct filter_frontend_s
 {
 	SNDFILE *p_in_file;
-    SNDFILE *p_tfm_file;
     unsigned int     fs_in;
     unsigned int     block_size;
     float           *p_in;
@@ -34,13 +35,13 @@ typedef struct filter_frontend_s
     float           *p_bins;
     float           *p_filtered;
     float           *p_out;
-    convolve        *p_convolve;
-    float           *p_filter;
+    void            *p_filter_state;
 	SNDFILE *p_out_file;
     unsigned int     fs_out;
 	unsigned int 	 N;
 	unsigned int     fc;
-	int 	         b_type;
+    float            gain_db;
+    int              type;
 } filter_frontend;
 
 int
@@ -65,10 +66,8 @@ print_usage(void)
     printf("| --------------------------------------------------------------------------------------------------|\n");
     printf("| -i <in_file>  | Name of input wav file.                                       |                   |\n");
     printf("| -o <out_file> | Name of output wav file.                                      |                   |\n");
-    printf("| -t <tfm_file> | Name of transform wav file.                                   |                   |\n");
-    printf("| -fc <HZ>      | Filter cutoff frequency.                                      |                   |\n");
-    printf("| -N <order>    | Filter order.                                                 |                   |\n");
-    printf("| -t <type>     | \"high\" or \"low\"                                               |                   |\n");
+    printf("| -g <gain_db>  | Gain applied to the output .wav file after filtering.         | 0dB               |\n");
+    printf("| --iir         | Force the use of an IIR filter.                               | fir               |\n");
     printf("-----------------------------------------------------------------------------------------------------\n");
 }
 
@@ -115,57 +114,24 @@ filter_frontend_init(filter_frontend_cfg *p_cfg, filter_frontend **pp_self)
         return -1;
     }
 
-    /* Open the transform file */
-    (*pp_self)->p_tfm_file=sf_open(p_cfg->p_tfm_name,SFM_WRITE,&sf_out_info);
-    if (NULL == (*pp_self)->p_tfm_file)
+    if (p_cfg->type == FILTER_FRONTEND_TYPE_FIR)
     {
-        int err;
-        err = sf_error((*pp_self)->p_tfm_file);
-        if (err < 5)
-        {
-            printf("Error opening output wav file, return code %d\n",err);
-        }
-        else
-        {
-            printf("%s\n",sf_error_number(err));
-        }
-        
-        return -1;
-    }
-
-    (*pp_self)->N = p_cfg->N;
-    (*pp_self)->p_filter = (float*)malloc(sizeof(float)*2*(*pp_self)->N);
-    (*pp_self)->fc = p_cfg->fc;
-    (*pp_self)->b_type = p_cfg->b_type;
-
-    if ((*pp_self)->b_type == FILTER_TYPE_LOWPASS)
-    {
-        fir_window_design_low_pass
-                    ((*pp_self)->p_filter
-                    ,(*pp_self)->fc
-                    ,(*pp_self)->fs_in
-                    ,(*pp_self)->N
-                    );
+        convolve_cfg cfg;
+        cfg.M=sizeof(fir_filter)/(2*sizeof(fir_filter[0]));
+        cfg.p_filt_coef = fir_filter;
+        convolve_init((convolve**)&(*pp_self)->p_filter_state, &cfg);
     }
     else
     {
-        printf("Hi\n");
-        fir_window_design_high_pass
-                    ((*pp_self)->p_filter
-                    ,(*pp_self)->fc
-                    ,(*pp_self)->fs_in
-                    ,(*pp_self)->N
-                    );
+        iir_filter_cfg cfg;
+        cfg.Mn = sizeof(iir_filter_n)/(2*sizeof(iir_filter_n[0]));
+        cfg.Md = sizeof(iir_filter_d)/(2*sizeof(iir_filter_d[0]));
+        cfg.p_filt_coef_n = iir_filter_n;
+        cfg.p_filt_coef_d = iir_filter_d;
+        iir_filter_init((iir_filter**)&(*pp_self)->p_filter_state, &cfg);
     }
-    
-    {
-        convolve_cfg cfg;
-        cfg.M=(*pp_self)->N;
-        cfg.p_filt_coef = (*pp_self)->p_filter;
-        convolve_init(&(*pp_self)->p_convolve,&cfg);
-    }
-    
-
+    (*pp_self)->gain_db = p_cfg->gain_db;
+    (*pp_self)->type = p_cfg->type;
     (*pp_self)->block_size = (unsigned int)(1.0*(*pp_self)->fs_in*BLOCK_SIZE_MS/1000);
     (*pp_self)->p_in = (float*)malloc(sizeof(float)*(*pp_self)->block_size);
     (*pp_self)->p_in_rebuf = (float*)malloc(sizeof(float)*2*(*pp_self)->block_size);
@@ -195,17 +161,40 @@ int
 filter_frontend_process(filter_frontend *p_self)
 {
     int tick = 0;
+    int i=0;
     int n_out;
+    float gain_lin;
+    gain_lin = powf(10,p_self->gain_db/20);
     while (p_self->block_size == sf_readf_float(p_self->p_in_file,p_self->p_in,p_self->block_size))
     {
-
         filter_frontend_rebuf(p_self->p_in,p_self->p_in_rebuf,p_self->block_size);
 
-        convolve_overlap_add(p_self->p_convolve,p_self->p_in_rebuf,p_self->block_size,p_self->p_filtered,&n_out);
+        if (p_self->type == FILTER_FRONTEND_TYPE_IIR)
+        {
+            iir_filter_process((iir_filter*)p_self->p_filter_state
+                              ,p_self->p_in_rebuf
+                              ,p_self->block_size
+                              ,p_self->p_filtered
+                              ,&n_out
+                              );
+        }
+        else
+        {
+            convolve_overlap_add((convolve*)p_self->p_filter_state
+                                ,p_self->p_in_rebuf
+                                ,p_self->block_size
+                                ,p_self->p_filtered
+                                ,&n_out
+                                );
+        }
+        
 
         filter_frontend_unbuf(p_self->p_filtered,p_self->p_out,p_self->block_size);
 
-        /*fft_forward_process(p_self->p_in_rebuf,p_self->p_bins,p_self->block_size); */
+        for (i=0; i<p_self->block_size; i++)
+        {
+            p_self->p_out[i] *= gain_lin;
+        }
 
         if (p_self->block_size != sf_writef_float(p_self->p_out_file,p_self->p_out,p_self->block_size))
         {
@@ -227,10 +216,8 @@ parse_args
     )
 {
     p_cfg->p_out_name = "out.wav";
-    p_cfg->p_tfm_name = "tfm.wav";
-    p_cfg->N = 11;
-    p_cfg->b_type = FILTER_TYPE_LOWPASS;
-    p_cfg->fc = 1000;
+    p_cfg->gain_db = 0;
+    p_cfg->type = FILTER_FRONTEND_TYPE_FIR;
     /* Skip function name */
     argc--;
     argv++;
@@ -248,43 +235,15 @@ parse_args
             argc--;
             argv++;
         }
-        else if (0 == strcmp(argv[0], "-fc"))
+        else if (0 == strcmp(argv[0], "-g"))
         {
-            p_cfg->fc = (unsigned int)atoi(argv[1]);
+            p_cfg->gain_db = atof(argv[1]);
             argc--;
             argv++;
         }
-        else if (0 == strcmp(argv[0], "-N"))
+        else if (0 == strcmp(argv[0], "--iir"))
         {
-            p_cfg->N = (unsigned int)atoi(argv[1]);
-            argc--;
-            argv++;
-        }
-        else if (0 == strcmp(argv[0], "-t"))
-        {
-        	char *p_type;
-            p_type = argv[1];
-            if (strcmp(p_type,"low") == 0)
-            {
-            	p_cfg->b_type = FILTER_TYPE_LOWPASS;
-            }
-            else if (strcmp(p_type,"high") == 0)
-            {
-            	p_cfg->b_type = FILTER_TYPE_HIGHPASS;
-            }
-            else
-            {
-            	printf("Unknown filter type %s.", p_type);
-            	return -1;
-            }
-            argc--;
-            argv++;
-        }
-        else if (0 == strcmp(argv[0], "--tfm"))
-        {
-            p_cfg->p_tfm_name = argv[1];
-            argc--;
-            argv++;
+            p_cfg->type = FILTER_FRONTEND_TYPE_IIR;
         }
         else if (0 == strcmp(argv[0], "-h"))
         {

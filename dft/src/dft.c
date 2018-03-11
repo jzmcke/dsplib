@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "dft/include/dft.h"
-#include "dft/include/util.h"
+#include "util/include/util.h"
 #include "cplx_math/include/cplx_math.h"
 
 int

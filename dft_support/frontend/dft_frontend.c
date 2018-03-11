@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "/usr/include/sndfile.h"
-#include "dft/include/util.h"
+#include "util/include/util.h"
 #include "dft/include/dft.h"
 #include "dft/include/file.h"
 
