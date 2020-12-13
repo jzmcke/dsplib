@@ -89,7 +89,8 @@ blob_float_a(blob *p_blob, char *p_var_name, float *p_var_val, int n)
         p_blob->a_var_data_offsets[p_blob->n_vars_in_blob] = p_blob->base_blob_size;
         
         p_blob->base_blob_size += n * sizeof(float);
-
+        p_blob->total_blob_size = p_blob->base_blob_size;
+    
         strcpy(p_blob->aa_var_names[p_blob->n_vars_in_blob], p_var_name);
         p_blob->a_var_len[p_blob->n_vars_in_blob] = n;
         p_blob->a_var_types[p_blob->n_vars_in_blob] = BLOB_VAR_TYPE_FLOAT;
@@ -141,7 +142,6 @@ blob_int_a(blob *p_blob, char *p_var_name, int *p_var_val, int n)
         &&(0 != strcmp(p_var_name, p_blob->aa_var_names[0])))
     {
         unsigned char *p_new_blob;
-        int b_found = 0;
 
         /* This occurs only when we are building the first repetition */
         assert(p_blob->n_repetitions == 0);
@@ -209,11 +209,15 @@ int
 blob_unsigned_int_a(blob *p_blob, char *p_var_name, unsigned int *p_var_val, int n)
 {
     unsigned char *p_var_data;
+
     if (   (p_blob->var_idx == p_blob->n_vars_in_blob)
         && (0 != strcmp(p_var_name, p_blob->aa_var_names[0]))
         )
     {
         unsigned char *p_new_blob;
+
+        /* This occurs only when we are building the first repetition */
+        assert(p_blob->n_repetitions == 0);
 
         /* The variable is new */
         if ((p_blob->n_vars_in_blob + 1) > BLOB_MAX_VARS_PER_BLOB)
@@ -230,6 +234,7 @@ blob_unsigned_int_a(blob *p_blob, char *p_var_name, unsigned int *p_var_val, int
         p_blob->p_blob_data = p_new_blob;
         p_blob->p_root_blob_data = p_new_blob;
         p_blob->base_blob_size += n * sizeof(u_int32_t);
+        p_blob->total_blob_size = p_blob->base_blob_size;
 
         strcpy(p_blob->aa_var_names[p_blob->n_vars_in_blob], p_var_name);
         p_blob->a_var_len[p_blob->n_vars_in_blob] = n;

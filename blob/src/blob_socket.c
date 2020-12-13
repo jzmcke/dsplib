@@ -249,7 +249,7 @@ __blob_assemble_data(blob_node *p_node, unsigned char *p_data, size_t *p_size)
 {
     size_t total_size = 0;
     size_t size_left = *p_size;
-
+    int n_initial_children = p_node->n_children;
     while (p_node->n_children > 0)
     {
         size_t tmp_size;
@@ -309,7 +309,7 @@ __blob_assemble_data(blob_node *p_node, unsigned char *p_data, size_t *p_size)
         size_left -= sizeof(int);
 
         /* Write the number of children */
-        memcpy(p_data + size_left - sizeof(int), &p_node->n_children, sizeof(int));
+        memcpy(p_data + size_left - sizeof(int), &n_initial_children, sizeof(int));
         size_left -= sizeof(int);
         /* Write the name of the node */
         memcpy(p_data + size_left - (sizeof(char) * MAX_NODENAME_LEN), p_node->p_name, sizeof(char) * MAX_NODENAME_LEN);
