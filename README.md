@@ -32,3 +32,6 @@
 #
 # 9. Sweep design tool
 # STATUS: Complete
+#
+# 10. Generic memory serialisation module "blob"
+# STATUS: Serialiser written but no deserialiser yet
