@@ -32,5 +32,5 @@ debug: $(DEBUG_OBJS)
 	$(CC) ${CFLAGS_DEBUG} -o bin/huffman_frontend_debug $^ $(INC)
 
 clean:
-	rm $(OBJS) $(DEBUG_OBJS)
-	rm -r bin
+	rm -f $(OBJS) $(DEBUG_OBJS)
+	rm -rf bin
