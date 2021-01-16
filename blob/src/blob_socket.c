@@ -207,6 +207,7 @@ __blob_header_get_size(blob *p_blob, size_t *p_size)
     total_size += sizeof(int); /* Store the number of variables in the blob */
     total_size += sizeof(int); /* Store the number of repetititions of the variables in the blob */
     *p_size = total_size;
+    return 0;
 }
 
 int
@@ -242,6 +243,7 @@ __blob_aggregate_data(blob_node *p_node, size_t *p_size)
 
     p_node->blob_size = total_size;
     *p_size = total_size;
+    return 0;
 }
 
 int
@@ -316,4 +318,5 @@ __blob_assemble_data(blob_node *p_node, unsigned char *p_data, size_t *p_size)
         size_left -= (sizeof(char) * MAX_NODENAME_LEN);
     }
     *p_size = size_left;
+    return 0;
 }   

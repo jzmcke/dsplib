@@ -126,7 +126,7 @@ test_add_int(void)
 	bitstream_printf(p_bitstream);
 	bitstream_reset(p_bitstream);
 	bitstream_read_int(p_bitstream,&read);
-	printf("read = %d\n",read);W
+	printf("read = %d\n",read);
 	printf("Equal = %d\n", read == test);
 	bitstream_clear(p_bitstream);
 	

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "/usr/include/sndfile.h"
+#include "sndfile.h"
 #include "util/include/util.h"
 #include "dft/include/dft.h"
 #include "dft/include/file.h"

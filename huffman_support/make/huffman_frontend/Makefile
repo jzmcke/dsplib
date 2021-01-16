@@ -1,4 +1,3 @@
-GIT_ROOT = /home/joe/dsplib
 CC = gcc
 OBJS = $(GIT_ROOT)/huffman/src/huffman_encode.o
 OBJS += $(GIT_ROOT)/stats/src/stats.o
@@ -25,10 +24,13 @@ INC = -I$(GIT_ROOT)
 	$(CC) ${CFLAGS_DEBUG} -c $< -o $@ $(INC)
 
 release: $(OBJS)
-	$(CC) ${CFLAGS_RELEASE} -o huffman_frontend_release $^ $(INC)
+	mkdir -p bin
+	$(CC) ${CFLAGS_RELEASE} -o bin/huffman_frontend_release $^ $(INC)
 
 debug: $(DEBUG_OBJS)
-	$(CC) ${CFLAGS_DEBUG} -o huffman_frontend_debug $^ $(INC)
+	mkdir -p bin
+	$(CC) ${CFLAGS_DEBUG} -o bin/huffman_frontend_debug $^ $(INC)
 
 clean:
 	rm $(OBJS) $(DEBUG_OBJS)
+	rm -r bin

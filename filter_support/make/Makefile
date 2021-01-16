@@ -1,4 +1,3 @@
-GIT_ROOT = /home/joe/dsplib
 CC = gcc
 OBJS = $(GIT_ROOT)/filter/src/convolve.o
 OBJS += $(GIT_ROOT)/filter/src/iir_filter.o

@@ -1,5 +1,4 @@
 CC=gcc
-GIT_ROOT=/home/joe/dsplib
 
 OBJS=$(GIT_ROOT)/dft/src/dft.o
 OBJS+=$(GIT_ROOT)/util/src/util.o
@@ -18,22 +17,26 @@ DEBUG_CFLAGS += -g
 RELEASE_CFLAGS = $(CFLAGS)
 RELEASE_CFLAGS += -O3
 
-LD_DIRS=-L/usr/local/lib
+LD_DIRS=-L/usr/include
+LD_DIRS += -L/usr/local/Cellar/libsndfile/1.0.30_1/include
 LD_LIBS=-lsndfile -lm
 
 INC=-I$(GIT_ROOT)
 
 %_release.o: %.c
-	$(CC) $($RELEASE_CFLAGS) -c $< -o $@ $(INC)
+	$(CC) $(RELEASE_CFLAGS) -c $< -o $@ $(INC)
 
 %_debug.o: %.c
 	$(CC) $(DEBUG_CFLAGS) -c $< -o $@ $(INC)
 
 release: $(RELEASE_OBJS)
-	$(CC) $(RELEASE_OBJS) ${RELEASE_CFLAGS} -o dft_frontend_release $(LD_DIRS) $(LD_LIBS) $(INC)
+	mkdir -p bin
+	$(CC) $(RELEASE_OBJS) ${RELEASE_CFLAGS} -o bin/dft_frontend_release $(LD_DIRS) $(LD_LIBS) $(INC)
 
 debug: $(DEBUG_OBJS)
-	$(CC) $(DEBUG_OBJS) ${REBUG_CFLAGS} -o dft_frontend_debug $(LD_DIRS) $(LD_LIBS) $(INC)
+	mkdir -p bin
+	$(CC) $(DEBUG_OBJS) ${DEBUG_CFLAGS} -o bin/dft_frontend_debug $(LD_DIRS) $(LD_LIBS) $(INC)
 
 clean:
-	rm $(DEBUG_OBJS) $(RELEASE_OBJS) dft_frontend_release dft_frontend_debug
+	rm -f $(DEBUG_OBJS) $(RELEASE_OBJS)
+	rm -rf bin
