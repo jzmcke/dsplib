@@ -9,8 +9,8 @@ let indexFile;
 let data = [];
 
 
-const wss = new ws.Server('ws://localhost:8080', {port: 8080});
-
+//const wss = new ws.Server('ws://localhost:8080', {port: 8080});
+const wss = new ws.Server({noServer: true})
 
 wss.on('message', function(message) {
     message = message.slice(0, 50); // max message length will be 50
