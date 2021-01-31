@@ -8,6 +8,9 @@
 #define MAX_CHILD_NODES (32)
 #define MAX_BLOBS_PER_NODE (32)
 
+#define BLOB_SOCKET_SERVER_ADDRESS "localhost"
+#define BLOB_SOCKET_SERVER_PORT (8000)
+
 typedef struct blob_node_s
 {
     char                 p_name[MAX_NODENAME_LEN];  /* Name of this blob node. */
@@ -18,6 +21,8 @@ typedef struct blob_node_s
     struct blob_node_s    *p_parent_node;
     size_t               blob_size; /* Only valid after complete traverse */
 } blob_node;
+
+int _blob_socket_init(char *addr, int port);
 
 int _blob_socket_start(char *node_name);
 int _blob_socket_float_a(char *var_name, float *p_var_val, int n);
@@ -36,6 +41,12 @@ struct blob_socket_state_s
 typedef struct blob_socket_state_s blob_socket_state;
 
 blob_socket_state blob_ss = {0};
+
+int
+_blob_socket_init(char *addr, int port)
+{
+
+}
 
 int
 _blob_node_close(blob_node **pp_blob_node)

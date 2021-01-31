@@ -80,57 +80,63 @@ var n,i=t("./lib/build-log"),a=t("./lib/epsilon"),o=t("./lib/intersecter"),s=t("
 
 
 <script>
-    let socket = new WebSocket('wss://127.0.0.1:8000');
-
-    // send message from the form
-    document.forms.publish.onsubmit = function() {
-    let outgoingMessage = this.message.value;
-
-    socket.send(outgoingMessage);
-    return false;
+    let ws = new WebSocket('ws://127.0.0.1:8000');
+    var data = [];
+    var last_data_point = 0;
+    // message received - show the message in div#messages
+    ws.onmessage = function(event) {
+        let message = event.data;
+        data_point =  parseFloat(message);
+        data.push(data_point);
+        console.log(message);
+        let messageElem = document.createElement('div');
+        let bigMessage = "";
+        for (i=0; i<data.length; i++)
+        {
+            bigMessage += data[i].toString();
+            bigMessage += " ";
+        }
+        messageElem.textContent = bigMessage;
+        document.getElementById('messages').prepend(messageElem);
+        console.log("Current State: '" + bigMessage + "'");
     };
 
-    // message received - show the message in div#messages
-    socket.onmessage = function(event) {
-    let message = event.data;
-
-    let messageElem = document.createElement('div');
-    messageElem.textContent = message;
-    document.getElementById('messages').prepend(messageElem);
-    }
+    ws.onopen = function() {
+        console.log('WebSocket Client is has connected foo bah.');
+    };
 
     var trace1 = {
-    x: [1, 2, 3, 4, 5],
-    y: [1, 6, 3, 6, 1],
-    mode: 'markers',
-    type: 'scatter',
-    name: 'Team A',
-    text: ['A-1', 'A-2', 'A-3', 'A-4', 'A-5'],
-    marker: { size: 12 }
+        y: data,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Broadcasted data',
+        marker: { size: 12 }
+    };
+
+  
+  var plotdata = [ trace1 ];
+  
+  var plotlayout = {
+        title:'Data Labels Hover'
   };
+  Plotly.newPlot('examplePlot', plotdata, plotlayout);
+
+  var interval = setInterval(function() {
+      if (data.length > 0)
+      {
+            data_to_plot = data;
+      }
+      else
+      {
+          data_to_plot = [last_data_point];
+      }
+      Plotly.extendTraces('examplePlot', {
+          y: [data_to_plot]
+      }, [0], 100);
+      last_data_point = data_to_plot[data_to_plot.length-1];
+      data = [];
+  }, 100);
   
-  var trace2 = {
-    x: [1.5, 2.5, 3.5, 4.5, 5.5],
-    y: [4, 1, 7, 1, 4],
-    mode: 'markers',
-    type: 'scatter',
-    name: 'Team B',
-    text: ['B-a', 'B-b', 'B-c', 'B-d', 'B-e'],
-    marker: { size: 12 }
-  };
   
-  var data = [ trace1, trace2 ];
-  
-  var layout = {
-    xaxis: {
-      range: [ 0.75, 5.25 ]
-    },
-    yaxis: {
-      range: [0, 8]
-    },
-    title:'Data Labels Hover'
-  };
-  
-  Plotly.newPlot('examplePlot', data, layout);
 </script>
 </html>

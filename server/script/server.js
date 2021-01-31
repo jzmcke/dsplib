@@ -1,23 +1,17 @@
 var http = require('http');
 var url = require('url');
 var fs = require('fs').promises;
-const ws = new require('ws');
+const WebSocketServer = require('websocket').server;
 var port = 8000;
 var host = 'localhost';
 let indexFile;
-
-let data = [];
-
-
-//const wss = new ws.Server('ws://localhost:8080', {port: 8080});
-const wss = new ws.Server({noServer: true})
-
-wss.on('message', function(message) {
+var data = [];
+var web_clients = [];
+/*WebSocketServer.on('message', function(message) {
     message = message.slice(0, 50); // max message length will be 50
     data.push(message);
     console.log(message);
-});
-
+});*/
 
 const requestListener = function(req, res) {
     // here we only handle websocket connections
@@ -42,5 +36,26 @@ fs.readFile(__dirname + "/index.html")
         process.exit(1);
     });
 
+const wsServer = new WebSocketServer({httpServer: server})
 
-var j = 2;
+wsServer.on('request', function(request) {
+    const connection = request.accept(null, request.origin);
+    web_clients.push(connection);
+    connection.on('message', function(message) {
+        console.log('Received Message:', message.utf8Data);
+        var full_data_msg = "";
+        data.push(parseFloat(message.utf8Data));
+        for (i=0; i<data.length; i++)
+        {
+            full_data_msg = full_data_msg += data[i].toString() + " ";
+        }
+        console.log(full_data_msg);
+        web_clients.forEach(function(client) {
+            client.sendUTF(message.utf8Data);
+        });
+    });
+
+    connection.on('close', function(reasonCode, description) {
+        console.log('Client has disconnected.');
+    });
+});
