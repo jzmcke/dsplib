@@ -7,6 +7,8 @@ var host = 'localhost';
 let indexFile;
 var data = [];
 var web_clients = [];
+
+var count = 0;
 /*WebSocketServer.on('message', function(message) {
     message = message.slice(0, 50); // max message length will be 50
     data.push(message);
@@ -40,19 +42,14 @@ const wsServer = new WebSocketServer({httpServer: server})
 
 wsServer.on('request', function(request) {
     const connection = request.accept(null, request.origin);
+    console.log('Connection request received.')
     web_clients.push(connection);
-    connection.on('message', function(message) {
-        console.log('Received Message:', message.utf8Data);
-        var full_data_msg = "";
-        data.push(parseFloat(message.utf8Data));
-        for (i=0; i<data.length; i++)
-        {
-            full_data_msg = full_data_msg += data[i].toString() + " ";
-        }
-        console.log(full_data_msg);
+    connection.on('message', function(message) {       
         web_clients.forEach(function(client) {
-            client.sendUTF(message.utf8Data);
+            client.send(message.binaryData);
         });
+        console.log("forwarding " + count);
+        count = count + 1;
     });
 
     connection.on('close', function(reasonCode, description) {

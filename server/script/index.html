@@ -81,24 +81,139 @@ var n,i=t("./lib/build-log"),a=t("./lib/epsilon"),o=t("./lib/intersecter"),s=t("
 
 <script>
     let ws = new WebSocket('ws://127.0.0.1:8000');
+    ws.binaryType = 'arraybuffer';
     var data = [];
     var last_data_point = 0;
+    var dec = new TextDecoder("utf-8");
+
+    function readInt32(buffer)
+    {
+        dv = new DataView(buffer);
+        val = dv.getInt32(0, true);
+        buffer = buffer.slice(4);
+        return [buffer, val];
+    }
+
+    function readString(buffer)
+    {
+        val = String.fromCharCode.apply(null, new Uint8Array(buffer.slice(0,128))).replace(/\0.*$/g,'');
+        buffer = buffer.slice(128);
+        return [buffer, val];
+    }
+
+    function blobDecode(buffer)
+    {
+        var out = {};
+        var nodename;
+        var n_children;
+        var b_has_blob;
+        var n_variables;
+        var varnames, varname;
+        var types, type;
+        var lens, len;
+
+        [buffer, nodename] = readString(buffer);
+        console.log(nodename);
+
+        [buffer, n_children] = readInt32(buffer);
+        console.log(n_children);
+
+        [buffer, b_has_blob] = readInt32(buffer);
+        console.log("b has blob " + b_has_blob);
+
+        console.log(buffer);
+        if (b_has_blob == 1) {
+            [buffer, n_repetitions] = readInt32(buffer);
+            console.log(n_repetitions);
+            [buffer, n_variables] = readInt32(buffer);
+            console.log(n_variables);
+
+            varnames = []
+            types = []
+            lens = []
+            for (i=0; i<n_variables; i++)
+            {
+                [buffer, varname] = readString(buffer);
+                out[varname] = []
+                varnames.push(varname);
+            }
+            for (i=0; i<n_variables; i++)
+            {
+                [buffer, type] = readInt32(buffer);
+                types.push(type);
+            }
+            for (i=0; i<n_variables; i++)
+            {
+                [buffer, len] = readInt32(buffer);
+                lens.push(len);
+            }
+            
+            for (rep=0; rep<n_repetitions+1; rep++)
+            {
+                for (i=0; i<n_variables; i++)
+                {
+                    if (types[i] == 0)
+                    {
+                        /* int */
+                        console.log("int");
+                        val = new Int32Array(buffer.slice(0, lens[i] * 4));
+                        buffer = buffer.slice(lens[i] * 4);
+                    } else if (types[i] == 1)
+                    {
+                        /* float */
+                        console.log("float");
+                        val = new Float32Array(buffer.slice(0, lens[i] * 4));
+                        buffer = buffer.slice(lens[i] * 4);
+                    } else if (types[i] == 2)
+                    {
+                        /* unsigned int */
+                        console.log("uint");
+                        val = new Uint32Array(buffer.slice(0, lens[i] * 4));
+                        buffer = buffer.slice(lens[i] * 4);
+                    }
+                    console.log(val)
+                    out[varnames[i]].push(val)
+                }
+            }
+        }
+        for (i=0; i<n_children; i++)
+        {
+            [buffer, childout, childname] = blobDecode(buffer);
+            out[childname] = childout;
+        }
+        
+        return [buffer, out, nodename];
+    }
+
     // message received - show the message in div#messages
     ws.onmessage = function(event) {
-        let message = event.data;
-        data_point =  parseFloat(message);
+        let dv = new DataView(event.data);
+        console.log('Start decode');
+        [buffer, out, nodename] = blobDecode(dv.buffer);
+        console.log('End decode');
+        root = {};
+        root[nodename] = out;
+        console.log("Length remaining " + buffer.byteLength);
+        console.log(root);
+        
+        data_point = root.main.jval[0][0];
+
+        console.log(data_point);
         data.push(data_point);
-        console.log(message);
-        let messageElem = document.createElement('div');
-        let bigMessage = "";
-        for (i=0; i<data.length; i++)
+        
+        if (data.length > 0)
         {
-            bigMessage += data[i].toString();
-            bigMessage += " ";
+            data_to_plot = data;
         }
-        messageElem.textContent = bigMessage;
-        document.getElementById('messages').prepend(messageElem);
-        console.log("Current State: '" + bigMessage + "'");
+        else
+        {
+            data_to_plot = [last_data_point];
+        }
+        Plotly.extendTraces('examplePlot', {
+            y: [data_to_plot]
+        }, [0], 1000);
+        last_data_point = data_to_plot[data_to_plot.length-1];
+        data = [];
     };
 
     ws.onopen = function() {
@@ -106,6 +221,7 @@ var n,i=t("./lib/build-log"),a=t("./lib/epsilon"),o=t("./lib/intersecter"),s=t("
     };
 
     var trace1 = {
+        
         y: data,
         mode: 'lines',
         type: 'scatter',
@@ -122,20 +238,8 @@ var n,i=t("./lib/build-log"),a=t("./lib/epsilon"),o=t("./lib/intersecter"),s=t("
   Plotly.newPlot('examplePlot', plotdata, plotlayout);
 
   var interval = setInterval(function() {
-      if (data.length > 0)
-      {
-            data_to_plot = data;
-      }
-      else
-      {
-          data_to_plot = [last_data_point];
-      }
-      Plotly.extendTraces('examplePlot', {
-          y: [data_to_plot]
-      }, [0], 100);
-      last_data_point = data_to_plot[data_to_plot.length-1];
-      data = [];
-  }, 100);
+      
+  }, 20);
   
   
 </script>

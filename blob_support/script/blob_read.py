@@ -52,8 +52,6 @@ def blob_read_node_tree(data):
                 blob['data']['vars'][var]['value'][:, rep] = struct.unpack(tok, new_data[:4*blob['data']['vars'][var]['len']])
                 new_data = new_data[4*blob['data']['vars'][var]['len']:]
 
-    import pdb
-    pdb.set_trace()
     for i in range(n_children):
         new_node, node_name, new_data = blob_read_node_tree(new_data)
         blob['nodes'] = dict()

@@ -2,7 +2,11 @@ CC = gcc
 OBJS = $(GIT_ROOT)/blob/src/blob_core.o
 OBJS += $(GIT_ROOT)/blob/src/blob_socket.o
 OBJS += $(GIT_ROOT)/blob_support/frontend/test_blob.o
-INC = -I$(GIT_ROOT)
+OBJS += $(GIT_ROOT)/minimal_websocket/src/minimal_websocket.o
+INC = -I$(GIT_ROOT) -I/usr/local/opt/openssl/include
+
+LD_DIRS=-L/usr/local/opt/openssl/lib -L/usr/local/opt/libwebsockets/lib
+LD_LIBS=-lwebsockets -lssl -lcrypto
 
 DEBUG_OBJS = ${OBJS:.o=_debug.o}
 
@@ -22,11 +26,11 @@ CFLAGS_DEBUG += -g
 
 debug: $(DEBUG_OBJS)
 	mkdir -p bin
-	$(CC) -g -DBLOB_SOCKET=1 -o bin/test_blob_debug $^ $(INC)
+	$(CC) -g -DBLOB_SOCKET=1 -o bin/test_blob_debug $^ $(INC) $(LD_DIRS) $(LD_LIBS)
 
 release: $(OBJS)
 	mkdir -p bin
-	$(CC) -DBLOB_SOCKET=1 -o bin/test_blob_release $^ $(INC)
+	$(CC) -DBLOB_SOCKET=1 -o bin/test_blob_release $^ $(INC) $(LD_DIRS) $(LD_LIBS)
 
 clean :
 	rm $(OBJS)

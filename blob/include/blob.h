@@ -34,7 +34,11 @@ extern int _blob_socket_float_a(char *var_name, float *p_var_val, int n);
 extern int _blob_socket_int_a(char *var_name, int *p_var_val, int n);
 extern int _blob_socket_unsigned_int_a(char *var_name, unsigned int *p_var_val, int n);
 extern int _blob_socket_flush();
+extern int _blob_socket_init(char *addr, int port);
+extern int _blob_socket_terminate();
 
+/* Tie the blob to a network location */
+#define BLOB_SOCKET_INIT(address, port)                            _blob_socket_init(address, port)
 /* Creates the blob file if not already created */
 #define BLOB_START(node_name)                                      _blob_socket_start(node_name)
 /* Appends an array of float values to a blob */
@@ -45,4 +49,6 @@ extern int _blob_socket_flush();
 #define BLOB_UNSIGNED_INT_A(var_name, p_var_val, n)                _blob_socket_unsigned_int_a(var_name, p_var_val, n)
 /* Flushes the memory and saves to file. */
 #define BLOB_FLUSH()                                               _blob_socket_flush()
+/* Terminate a socket connection */
+#define BLOB_SOCKET_TERMINATE()                                    _blob_socket_terminate()
 #endif

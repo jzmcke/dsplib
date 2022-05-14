@@ -53,8 +53,10 @@ blob_close(blob **pp_blob)
         if (NULL != p_blob->p_root_blob_data)
         {
             free(p_blob->p_root_blob_data);
+            p_blob->p_root_blob_data = NULL;
         }
         free(*pp_blob);
+        *pp_blob = NULL;
     }
     return 0;
 }

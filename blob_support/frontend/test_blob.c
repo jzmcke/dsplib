@@ -1,5 +1,6 @@
 #include "blob/include/blob.h"
 #include <assert.h>
+#include <unistd.h>
 
 #define NUM_IN_FIRST_ARRAY  (4)
 #define NUM_IN_SECOND_ARRAY (7)
@@ -63,16 +64,29 @@ int
 main(int argc, char **argv)
 {
     int i = 0;
-    BLOB_START("main");
-    for (i=0; i<10; i++)
+    int jval=0;
+    BLOB_SOCKET_INIT("localhost", 8000);
+    
+    while (1)
     {
-        BLOB_INT_A("iteration", &i, 1);
-        func_top();
-        func_mid();
-        func_top();
-        func_top();
+        BLOB_START("main");
+        BLOB_INT_A("jval", &jval, 1);
+        BLOB_START("outer");
+        for (i=0; i<10; i++)
+        {
+            BLOB_INT_A("iteration", &i, 1);
+            func_top();
+            func_mid();
+
+            func_top();
+            func_top();
+        }
+        BLOB_FLUSH();
+        BLOB_FLUSH();
+        jval = (jval + 1) % 1028;
+        //usleep(100000);
     }
     
-    BLOB_FLUSH();
+    BLOB_SOCKET_TERMINATE();
     return 0;
 }

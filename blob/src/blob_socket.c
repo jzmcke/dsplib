@@ -1,4 +1,5 @@
 #include "blob/include/blob.h"
+#include "minimal_websocket/include/minimal_websocket.h"
 #include "blob_core.h"
 #include <string.h>
 #include <assert.h>
@@ -36,6 +37,7 @@ int _blob_socket_flush();
 struct blob_socket_state_s
 {
     blob_node *p_cur_node;
+    minimal_websocket *p_min_ws;
 };
 
 typedef struct blob_socket_state_s blob_socket_state;
@@ -45,7 +47,21 @@ blob_socket_state blob_ss = {0};
 int
 _blob_socket_init(char *addr, int port)
 {
+    minimal_websocket_cfg cfg;
+    cfg.addr = addr;
+    cfg.port = port;
+    cfg.max_tx_size = 16384 << 4;
+    cfg.max_rx_size = 16384 << 4;
+    cfg.b_overwrite_on_send = 1;
+    minimal_websocket_init(&blob_ss.p_min_ws, &cfg);
+    return 0;
+}
 
+int
+_blob_socket_terminate()
+{
+    minimal_websocket_close(&blob_ss.p_min_ws);
+    return 0;
 }
 
 int
@@ -61,6 +77,7 @@ _blob_node_close(blob_node **pp_blob_node)
 
     blob_close(&p_blob_node->p_blob);
     free(*pp_blob_node);
+    *pp_blob_node = NULL;
     return BLOB_OK;
 }
 
@@ -76,6 +93,10 @@ _blob_socket_start(char *node_name)
     else
     {   
         int b_found_node = 0;
+        if (0 == strcmp(blob_ss.p_cur_node->p_name, node_name))
+        {
+            b_found_node = 1;
+        }
         for (int i=0; i<blob_ss.p_cur_node->n_children; i++)
         {
             if (0 == strcmp(blob_ss.p_cur_node->ap_child_nodes[i]->p_name, node_name))
@@ -167,15 +188,16 @@ _blob_socket_flush()
         assert(total_size_copied == 0);
 
         /* For now, write to file */
-        p_file = fopen("socket", "a");
-        fwrite(p_full_tree_blob, total_size, 1, p_file);
-        fclose(p_file);
+        minimal_websocket_set_send_data(blob_ss.p_min_ws, p_full_tree_blob, total_size);
+
+        minimal_websocket_service(blob_ss.p_min_ws);
+       
         free(p_full_tree_blob);
         _blob_node_close(&blob_ss.p_cur_node);
     }
     else
     {
-        size_t this_blob_size;
+        size_t this_blob_size = 0;
         unsigned char *p_data;
         if (NULL != blob_ss.p_cur_node->p_blob)
         {
@@ -237,7 +259,6 @@ __blob_aggregate_data(blob_node *p_node, size_t *p_size)
     for (int i=0; i<p_node->n_children; i++)
     {
         size_t tmp_size = 0;
-        unsigned char *p_data;
         __blob_aggregate_data(p_node->ap_child_nodes[i], &tmp_size);
         total_size += tmp_size;
     }
@@ -260,12 +281,10 @@ __blob_aggregate_data(blob_node *p_node, size_t *p_size)
 int
 __blob_assemble_data(blob_node *p_node, unsigned char *p_data, size_t *p_size)
 {
-    size_t total_size = 0;
     size_t size_left = *p_size;
     int n_initial_children = p_node->n_children;
     while (p_node->n_children > 0)
     {
-        size_t tmp_size;
         __blob_assemble_data(p_node->ap_child_nodes[p_node->n_children-1], p_data, &size_left);
         _blob_node_close(&p_node->ap_child_nodes[p_node->n_children-1]);
         p_node->n_children--;
