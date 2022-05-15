@@ -5,7 +5,7 @@ OBJS += $(GIT_ROOT)/blob_support/frontend/test_blob.o
 OBJS += $(GIT_ROOT)/minimal_websocket/src/minimal_websocket.o
 INC = -I$(GIT_ROOT) -I/usr/local/opt/openssl/include
 
-LD_DIRS=-L/usr/local/opt/openssl/lib -L/usr/local/opt/libwebsockets/lib
+LD_DIRS=-L/usr/local/opt/openssl/lib -L/usr/local/lib
 LD_LIBS=-lwebsockets -lssl -lcrypto
 
 DEBUG_OBJS = ${OBJS:.o=_debug.o}
@@ -33,7 +33,7 @@ release: $(OBJS)
 	$(CC) -DBLOB_SOCKET=1 -o bin/test_blob_release $^ $(INC) $(LD_DIRS) $(LD_LIBS)
 
 clean :
-	rm $(OBJS)
-	rm $(DEBUG_OBJS)
-	rm -r bin
+	rm -f $(OBJS)
+	rm -f $(DEBUG_OBJS)
+	rm -rf bin
 	

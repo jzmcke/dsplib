@@ -3,7 +3,7 @@ var url = require('url');
 var fs = require('fs').promises;
 const WebSocketServer = require('websocket').server;
 var port = 8000;
-var host = 'localhost';
+var host = '0.0.0.0';
 let indexFile;
 var data = [];
 var web_clients = [];
@@ -48,7 +48,6 @@ wsServer.on('request', function(request) {
         web_clients.forEach(function(client) {
             client.send(message.binaryData);
         });
-        console.log("forwarding " + count);
         count = count + 1;
     });
 

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define EXAMPLE_RX_BUFFER_BYTES (1024)
+#define EXAMPLE_RX_BUFFER_BYTES (4096)
 
 
 typedef struct tx_rx_info_s {
@@ -37,11 +37,7 @@ static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason
 	switch( reason )
 	{
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:
-			printf("Client is now writeable!\n");
-			//unsigned char start=64;
-			//memcpy((char*)&buf[LWS_SEND_BUFFER_PRE_PADDING], &start, 1);
-			//lws_callback_on_writable( wsi );
-			//lws_write(wsi, &buf[LWS_SEND_BUFFER_PRE_PADDING], 1, LWS_WRITE_BINARY);
+			printf("Client established.\n");
 			break;
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:
@@ -50,7 +46,7 @@ static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason
 		case LWS_CALLBACK_CLIENT_WRITEABLE:
 			p_min_ws = (minimal_websocket*)lws_get_protocol(wsi)->user;
 			tx_rx_info *p_tx_rx_info = p_min_ws->p_tx_rx_info;
-			printf("Client is now writeable 2.0!\n");
+			printf("Client writeable.\n");
 			lws_write( wsi, &p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING], p_tx_rx_info->n_tx_current_data, LWS_WRITE_BINARY );
 
 			memset(&p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING], 0, p_tx_rx_info->n_tx_current_data);
@@ -59,17 +55,13 @@ static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason
 		case LWS_CALLBACK_CLOSED:
 		case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
 			p_min_ws = (minimal_websocket*)lws_get_protocol(wsi)->user;
-			printf("Error connecting to server\n");
+			printf("Error connecting to server.\n");
 			char errbuf[256] = {0};
-			printf("bah do\n");
-			printf("in: %p\n",  in);
-			printf("lah lah\n");
 			if (NULL != in)
 			{
 				memcpy(errbuf, in, len);
 				printf("%s", errbuf);
 			}
-			printf("foo bah\n");
 			p_min_ws->web_socket = NULL;
 			break;
 		default:
