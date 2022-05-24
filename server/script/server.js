@@ -5,6 +5,7 @@ const WebSocketServer = require('websocket').server;
 var port = 8000;
 var host = '0.0.0.0';
 let indexFile;
+let plotlyFile;
 var data = [];
 var web_clients = [];
 
@@ -22,11 +23,14 @@ const requestListener = function(req, res) {
     res.setHeader("Content-Type", "text-html");
     res.writeHead(200);
     res.end(indexFile);
+
+    res.writeHead(200, {"Content-Type": "test/javascript"});
+    res.end(plotlyFile);
 }
 
 const server = http.createServer(requestListener);
 
-fs.readFile(__dirname + "/index.html")
+fs.readFile(__dirname + "/public/index.html")
     .then(contents => {
         indexFile = contents;
         server.listen(port, host, () => {
@@ -35,6 +39,16 @@ fs.readFile(__dirname + "/index.html")
     })
     .catch(err => {
         console.error(`Could not read index.html file: ${err}`);
+        process.exit(1);
+    });
+
+fs.readFile(__dirname + "/public/plotly.js")
+    .then(contents => {
+        plotlyFile = contents;
+        console.log(`Read plotly file`);
+    })
+    .catch(err => {
+        console.error(`Could not send static js file: ${err}`);
         process.exit(1);
     });
 
@@ -47,6 +61,7 @@ wsServer.on('request', function(request) {
     connection.on('message', function(message) {       
         web_clients.forEach(function(client) {
             client.send(message.binaryData);
+            console.log("forwarding " + count);
         });
         count = count + 1;
     });
