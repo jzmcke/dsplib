@@ -100,7 +100,6 @@ function addTrace()
 {  
     id = this.id.split('-')[1]
     var dropdown = document.getElementById("dropdown-" + id);
-
     
     Plotly.addTraces('plot-' + id, {y: [], name: dropdown.value});
     n_traces_per_plot[id] = n_traces_per_plot[id] + 1;
@@ -111,6 +110,7 @@ function addTrace()
 var plot_id = 0;
 var valid_plot_ids = [];
 var valid_logs = [];
+var plot_types = [];
 
 
 function addPlot()
@@ -120,13 +120,15 @@ function addPlot()
         console.log("No data is streaming yet");
         return;
     }
+    var plot_type = document.getElementById("plot-type-select");
+
     var trace1 = {y: [],
                 mode: 'lines',
-                type: 'scatter',
+                type: plot_type.value,
                 name: 'Broadcasted data',
                 marker: { size: 12 }
                 };
-
+    plot_types.push(plot_type.value);
     var plotdata = [ trace1 ];
     
     var plotlayout = {
@@ -135,22 +137,26 @@ function addPlot()
 
     var new_plot_div = document.createElement("div");
     new_plot_div.setAttribute("id", "plot-div-" + plot_id);
+    new_plot_div.setAttribute("class", "plot-container");
 
     var plot_section = document.createElement("div");
     plot_section.setAttribute("id", "plot-" + plot_id);
 
     var plot_selection = document.createElement("select");
     plot_selection.id = "dropdown-" + plot_id;
+    plot_selection.setAttribute("class", "dropdown-traces")
 
     for (const log of valid_logs)
     {
         var option = document.createElement("option");
+        option.setAttribute("class", "dropdown-option")
         option.value = log.split(" ");
         option.text = log;
         plot_selection.appendChild(option);
     }
 
     var add_trace = document.createElement("button");
+    add_trace.setAttribute("class", "add-trace")
     add_trace.type ='button';
     add_trace.innerHTML = 'Add trace'
     add_trace.id = "button-" + plot_id;
@@ -193,6 +199,9 @@ function propertiesToArray(obj) {
 var max_plot_len = 1000;
 var x_pos = 0;
 var b_discovered = false;
+var heatmap_data = [];
+var scatter_data = [];
+var max_heatmap_len = 100;
 // message received - show the message in div#messages
 ws.onmessage = function(event) {
     let dv = new DataView(event.data);
@@ -209,7 +218,6 @@ ws.onmessage = function(event) {
     for (plot_id=0; plot_id<valid_plot_ids.length; plot_id++)
     {
         var data = [];
-        var data_x = [];
         var indices = [];
         var traces = trace_vars_per_plot[plot_id];
         var index = 0;
@@ -221,15 +229,44 @@ ws.onmessage = function(event) {
             {
                 this_var = this_var[scope];
             }
-            data.push([this_var[0][0]])
-            data_x.push([x_pos]);
+            if (plot_types[plot_id] == 'scatter')
+            {
+                data.push([this_var[0][0]]);
+            }
+            else if (plot_types[plot_id] == 'heatmap')
+            {
+                data.push([this_var[0]]);
+            }
+            
             indices.push(index);
             index = index + 1;
         }
         if (data.length > 0)
         {
             data_to_plot = data;
-            Plotly.extendTraces('plot-' + plot_id, {y: data_to_plot}, indices, max_plot_len);
+            if (plot_types[plot_id] == 'heatmap')
+            {
+                data_to_add = Array.from(data_to_plot[0][0])
+                heatmap_data.push(data_to_add);
+                data_to_plot = math.reshape(heatmap_data, [data_to_add.length, heatmap_data.length])
+                Plotly.restyle('plot-' + plot_id, {z: [data_to_plot]}, indices)
+
+                if (heatmap_data.length >= 100)
+                {
+                    heatmap_data = heatmap_data.slice(1);
+                }
+            }
+            else
+            {
+                scatter_data.push(data_to_plot)
+                scatter_data = math.reshape(scatter_data, [scatter_data.length])
+                Plotly.restyle('plot-' + plot_id, {y: [scatter_data]}, indices);
+                if (scatter_data.length >= 100)
+                {
+                    scatter_data = scatter_data.slice(1);
+                }
+            }
+            
         }
         else
         {
