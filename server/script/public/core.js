@@ -1,4 +1,4 @@
-let ws = new WebSocket('ws://172.21.143.247:8000');
+let ws = new WebSocket('ws://192.168.50.115:8000');
 ws.binaryType = 'arraybuffer';
 var data = [];
 var last_data_point = 0;
@@ -93,8 +93,6 @@ function blobDecode(buffer)
     
     return [buffer, out, nodename];
 }
-var trace_vars_per_plot = [];
-var n_traces_per_plot = [];
 
 function addTrace()
 {  
@@ -107,73 +105,186 @@ function addTrace()
     
 };
 
-var plot_id = 0;
-var valid_plot_ids = [];
-var valid_logs = [];
-var plot_types = [];
+function addTraceToPlot()
+{
+    id = this.id.split('-')[1]
 
+    var i = 0;
+
+    for (i=0; i<a_plots.length; i++)
+    {
+        if (a_plots[i].plot_id == id)
+        {
+            a_plots[i].addTrace();
+        }
+    }
+    
+}
+
+class Plot
+{
+    constructor(plot_type, plot_id)
+    {
+        this.plot_type = plot_type;
+        this.plot_id = plot_id;
+        this.n_traces = 0;
+        this.traces = [];
+
+        this.max_plot_len = 1000;
+        this.x_pos = 0;
+        this.plot_data = [];
+        this.max_heatmap_len = 100;
+
+        this.last_data_point = 0;
+
+        if (valid_logs.length == 0)
+        {
+            console.log("No data is streaming yet");
+            return;
+        }
+
+        this.plotdata = [];
+        
+        this.plotlayout = {
+            title: plot_type + ' ' + plot_id,
+            // paper_bgcolor: '#3b3838',
+            // plot_bgcolor: '#3b3838'
+        };
+
+        this.plot_div = document.createElement("div");
+        this.plot_div.id = "plot-div-" + plot_id;
+        this.plot_div.class = "plot-container";
+
+        this.plot_section = document.createElement("div");
+        this.plot_section.setAttribute("id", "plot-" + plot_id);
+
+        this.plot_selection = document.createElement("select");
+        this.plot_selection.id = "dropdown-" + plot_id;
+        this.plot_selection.class = "dropdown-traces";
+
+        for (const log of valid_logs)
+        {
+            var option = document.createElement("option");
+            option.class = "dropdown-option";
+            option.value = log.split(" ");
+            option.text = log;
+            this.plot_selection.appendChild(option);
+        }
+
+        this.add_trace = document.createElement("button");
+        this.add_trace.class = "add-trace";
+        this.add_trace.type = 'button';
+        this.add_trace.innerHTML = 'Add trace'
+        this.add_trace.id = "button-" + plot_id;
+        this.add_trace.onclick = addTraceToPlot;
+
+        this.element = document.getElementById("plots");
+        
+        this.plot_div.appendChild(this.plot_section);
+        this.plot_div.appendChild(this.plot_selection);
+        this.plot_div.appendChild(this.add_trace);
+        this.element.appendChild(this.plot_div);
+        
+        Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout);
+    }
+    
+    addTrace()
+    {
+        var trace;
+        var dropdown = document.getElementById("dropdown-" + id);
+        Plotly.addTraces('plot-' + this.plot_id, {y: [], name: dropdown.value});
+        this.n_traces = this.n_traces + 1;
+        this.traces.push(dropdown.value);
+
+        this.plot_data = [];
+        for (trace of this.traces)
+        {
+            this.plot_data.push([]);
+        }
+    }
+
+    addData(in_data)
+    {
+        var data_to_plot;
+        var indices = [];
+        var index = 0;
+        var trace;
+        var trace_idx = 0;
+        for (trace of this.traces)
+        {
+            var data;
+            var these_vars = [];
+            var scopes = trace.split('.');
+            var this_var = in_data[scopes[0]];
+            for (scope of scopes.slice(1))
+            {
+                this_var = this_var[scope];
+            }
+            if (this.plot_type == 'scatter')
+            {
+                data = this_var[0][0];
+            }
+            else if (this.plot_type == 'heatmap')
+            {
+                data = this_var[0];
+            }
+            this.plot_data[trace_idx].push(data);
+            indices.push(index);
+            index = index + 1;
+            trace_idx = trace_idx + 1;
+        }
+        if (this.plot_data.length > 0)
+        {
+            data_to_plot = data;
+            if (this.plot_type == 'heatmap')
+            {
+                // data_to_add = Array.from(data_to_plot[0][0])
+                // this.plot_data.push(data_to_add);
+                // data_to_plot = math.reshape(this.plot_data, [data.length, this.plot_data.length])
+                Plotly.restyle('plot-' + this.plot_id, {z: [...this.plot_data]}, indices)
+
+                if (this.plot_data.length >= 100)
+                {
+                    this.plot_data = this.plot_data.slice(1);
+                }
+            }
+            else
+            {
+                // data_to_add = Array.from()
+                // this.plot_data.push(data_to_plot)
+                // var to_plot = math.reshape(this.plot_data, [this.n_traces, this.plot_data.length])
+                Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data}, indices);
+                if (this.plot_data[0].length >= 100)
+                {
+                    var i = 0;
+                    for (trace of this.traces)
+                    {
+                        this.plot_data[i] = this.plot_data[i].slice(1);
+                        i += 1;
+                    } 
+                    
+                }
+            }
+        }
+        else
+        {
+            data_to_plot = [this.last_data_point];
+            indices = [0];
+        }
+       
+        this.last_data_point = data_to_plot[data_to_plot.length-1];
+        this.x_pos = this.x_pos + 1 % this.max_plot_len;
+    }
+}
+
+var new_plot_id = 0;
 
 function addPlot()
 {
-    if (valid_logs.length == 0)
-    {
-        console.log("No data is streaming yet");
-        return;
-    }
     var plot_type = document.getElementById("plot-type-select");
-
-    var trace1 = {y: [],
-                mode: 'lines',
-                type: plot_type.value,
-                name: 'Broadcasted data',
-                marker: { size: 12 }
-                };
-    plot_types.push(plot_type.value);
-    var plotdata = [ trace1 ];
-    
-    var plotlayout = {
-        title:'Data Labels Hover'
-    };
-
-    var new_plot_div = document.createElement("div");
-    new_plot_div.setAttribute("id", "plot-div-" + plot_id);
-    new_plot_div.setAttribute("class", "plot-container");
-
-    var plot_section = document.createElement("div");
-    plot_section.setAttribute("id", "plot-" + plot_id);
-
-    var plot_selection = document.createElement("select");
-    plot_selection.id = "dropdown-" + plot_id;
-    plot_selection.setAttribute("class", "dropdown-traces")
-
-    for (const log of valid_logs)
-    {
-        var option = document.createElement("option");
-        option.setAttribute("class", "dropdown-option")
-        option.value = log.split(" ");
-        option.text = log;
-        plot_selection.appendChild(option);
-    }
-
-    var add_trace = document.createElement("button");
-    add_trace.setAttribute("class", "add-trace")
-    add_trace.type ='button';
-    add_trace.innerHTML = 'Add trace'
-    add_trace.id = "button-" + plot_id;
-    add_trace.onclick = addTrace;
-
-    var element = document.getElementById("plots");
-    
-    new_plot_div.appendChild(plot_section);
-    new_plot_div.appendChild(plot_selection);
-    new_plot_div.appendChild(add_trace);
-    element.appendChild(new_plot_div);
-    
-    Plotly.newPlot('plot-' + plot_id, plotdata, plotlayout);
-    valid_plot_ids.push(plot_id);
-    plot_id = plot_id + 1;
-    trace_vars_per_plot.push([]);
-    n_traces_per_plot.push(0);
+    a_plots[new_plot_id] = new Plot(plot_type.value, new_plot_id);
+    valid_plot_ids.push(new_plot_id);
+    new_plot_id = new_plot_id + 1;
 }
 
 function propertiesToArray(obj) {
@@ -196,12 +307,12 @@ function propertiesToArray(obj) {
   
     return paths(obj);
 }
-var max_plot_len = 1000;
-var x_pos = 0;
+
+
 var b_discovered = false;
-var heatmap_data = [];
-var scatter_data = [];
-var max_heatmap_len = 100;
+var valid_logs = [];
+var a_plots = [];
+var valid_plot_ids = [];
 // message received - show the message in div#messages
 ws.onmessage = function(event) {
     let dv = new DataView(event.data);
@@ -215,69 +326,10 @@ ws.onmessage = function(event) {
         b_discovered = true;
     }
     
-    for (plot_id=0; plot_id<valid_plot_ids.length; plot_id++)
+    for (plot_idx=0; plot_idx<a_plots.length; plot_idx++)
     {
-        var data = [];
-        var indices = [];
-        var traces = trace_vars_per_plot[plot_id];
-        var index = 0;
-        for (trace of traces)
-        {
-            var scopes = trace.split('.');
-            var this_var = out[scopes[0]];
-            for (scope of scopes.slice(1))
-            {
-                this_var = this_var[scope];
-            }
-            if (plot_types[plot_id] == 'scatter')
-            {
-                data.push([this_var[0][0]]);
-            }
-            else if (plot_types[plot_id] == 'heatmap')
-            {
-                data.push([this_var[0]]);
-            }
-            
-            indices.push(index);
-            index = index + 1;
-        }
-        if (data.length > 0)
-        {
-            data_to_plot = data;
-            if (plot_types[plot_id] == 'heatmap')
-            {
-                data_to_add = Array.from(data_to_plot[0][0])
-                heatmap_data.push(data_to_add);
-                data_to_plot = math.reshape(heatmap_data, [data_to_add.length, heatmap_data.length])
-                Plotly.restyle('plot-' + plot_id, {z: [data_to_plot]}, indices)
-
-                if (heatmap_data.length >= 100)
-                {
-                    heatmap_data = heatmap_data.slice(1);
-                }
-            }
-            else
-            {
-                scatter_data.push(data_to_plot)
-                scatter_data = math.reshape(scatter_data, [scatter_data.length])
-                Plotly.restyle('plot-' + plot_id, {y: [scatter_data]}, indices);
-                if (scatter_data.length >= 100)
-                {
-                    scatter_data = scatter_data.slice(1);
-                }
-            }
-            
-        }
-        else
-        {
-            data_to_plot = [last_data_point];
-            indices = [0];
-        }
-       
-        last_data_point = data_to_plot[data_to_plot.length-1];
-        data = [];
+        a_plots[plot_idx].addData(out);
     }
-    x_pos = x_pos + 1 % max_plot_len;
 };
 
 ws.onopen = function() {
