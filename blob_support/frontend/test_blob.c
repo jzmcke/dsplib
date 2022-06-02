@@ -1,5 +1,6 @@
 #include "blob/include/blob.h"
 #include <assert.h>
+#include <math.h>
 #include <unistd.h>
 
 #define NUM_IN_FIRST_ARRAY  (4)
@@ -65,14 +66,20 @@ int
 main(int argc, char **argv)
 {
     int i = 0;
+    int j = 0;
     int jval[NELEM] = {0};
     int count = 0;
-    BLOB_SOCKET_INIT("127.0.0.1", 8000);
+    float jval_squared[NELEM] = {0};
+    float jval_cubed = 0.0f;
+    BLOB_SOCKET_INIT("172.21.143.247", 8000);
     
     while (1)
     {
         BLOB_START("main");
-        BLOB_INT_A("jval", &jval, NELEM);
+        BLOB_INT_A("jval", jval, NELEM);
+        jval_cubed = 1.0 * (*jval) * (*jval) * (*jval) / (NELEM * NELEM);
+        BLOB_FLOAT_A("jval_squared", &jval_squared, NELEM);
+        BLOB_FLOAT_A("jval_cubed", &jval_cubed, NELEM);
         BLOB_START("outer");
         for (i=0; i<10; i++)
         {
@@ -84,14 +91,20 @@ main(int argc, char **argv)
             func_top();
         }
         BLOB_FLUSH();
-        BLOB_FLUSH();
+        
         for (i=0; i<NELEM; i++)
         {
-            jval[i] = (jval[i] + 1) % 1024;
+            jval[i] = 0;
         }
-        
-        usleep(10000); // 10ms
+
+        for (i=0; i<10; i++)
+        {
+            jval[(j + i * i) % NELEM] = 1;
+        }
+        j =  j + 1 % NELEM;
+        usleep(20000); // 20ms
         printf("count: %d\n", count++);
+        BLOB_FLUSH();
     }
     
     BLOB_SOCKET_TERMINATE();
