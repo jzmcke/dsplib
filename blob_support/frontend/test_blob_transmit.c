@@ -8,10 +8,13 @@ main(int argc, char **argv)
 {
     int up = 31;
     int down = 72;
+    int i = 0;
     BLOB_SOCKET_INIT("172.21.131.23", 8000);
     
     while (1)
     {
+        up += 100;
+        down += 100;
         BLOB_START("main");
         BLOB_INT_A("up", &up, 1);
         BLOB_INT_A("down", &down, 1);

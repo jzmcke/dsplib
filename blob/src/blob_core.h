@@ -50,3 +50,6 @@ blob_retrieve_unsigned_int_a(blob *p_blob, char *var_name, const unsigned int **
 
 size_t
 blob_set_from_data(blob *p_blob, char *p_data, size_t *p_total_size);
+
+void
+blob_update_root_data(blob *p_blob, char *p_data);

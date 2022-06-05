@@ -16,6 +16,8 @@ struct blob_s
     size_t          total_blob_size;
     unsigned int    a_var_data_offsets[BLOB_MAX_VARS_PER_BLOB]; /* data is allocated on first write. subsequent writes must be the same size. */
     int             var_idx; /* the variable the blob is expecting to be written next */
+
+    size_t          serialized_data_size;
 };
 
 int
@@ -125,7 +127,6 @@ blob_float_a(blob *p_blob, char *p_var_name, float *p_var_val, int n)
     {
         *((float*)&p_var_data[i*sizeof(float)]) = (float)p_var_val[i];
     }
-
     p_blob->var_idx++;
     return BLOB_OK;
 }
@@ -197,7 +198,6 @@ blob_int_a(blob *p_blob, char *p_var_name, int *p_var_val, int n)
     {
         *((int32_t*)&p_var_data[i*sizeof(int32_t)]) = (int32_t)p_var_val[i];
     }
-
     p_blob->var_idx++;
     return BLOB_OK;
 }
@@ -269,7 +269,6 @@ blob_unsigned_int_a(blob *p_blob, char *p_var_name, unsigned int *p_var_val, int
     {
         *((u_int32_t*)&p_var_data[i*sizeof(u_int32_t)]) = p_var_val[i];
     }
-
     p_blob->var_idx++;
     return BLOB_OK;
 }
@@ -348,7 +347,20 @@ blob_set_from_data(blob *p_blob,
     p_blob->total_blob_size = offset * (p_blob->n_repetitions + 1);
     total_size += p_blob->total_blob_size;
     *p_total_size = total_size;
+    p_blob->serialized_data_size = total_size;
     return 0;
+}
+
+size_t
+blob_get_serialized_data_size(blob *p_blob)
+{
+    return p_blob->serialized_data_size;
+}
+
+void
+blob_update_root_data(blob *p_blob, char *p_data)
+{
+    p_blob->p_root_blob_data = p_data + 2 * sizeof(int) + p_blob->n_vars_in_blob * (sizeof(char) * BLOB_MAX_VAR_NAME_LEN + sizeof(int) + sizeof(int));
 }
 
 int
