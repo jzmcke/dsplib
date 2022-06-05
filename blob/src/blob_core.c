@@ -3,11 +3,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define BLOB_MAX_VARS_PER_BLOB      (32)
-#define BLOB_VAR_TYPE_INT           (0)
-#define BLOB_VAR_TYPE_FLOAT         (1)
-#define BLOB_VAR_TYPE_UNSIGNED_INT  (2)
-
 struct blob_s
 {
     int             n_vars_in_blob;
@@ -302,3 +297,125 @@ blob_get_info(blob *p_blob,
     *n_repetitions = p_blob->n_repetitions;
 }
 
+size_t
+blob_set_from_data(blob *p_blob,
+                   char *p_data,
+                   size_t *p_total_size)
+{
+    size_t total_size = 0;
+    unsigned int offset = 0;
+    int i;
+    memcpy(&p_blob->n_repetitions, p_data + total_size, sizeof(int));
+    total_size += sizeof(int);
+
+    memcpy(&p_blob->n_vars_in_blob, p_data + total_size, sizeof(int));
+    total_size += sizeof(int);
+
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {
+        memcpy(p_blob->aa_var_names[i], p_data + total_size, sizeof(char) * BLOB_MAX_VAR_NAME_LEN);
+        total_size += sizeof(char) * BLOB_MAX_VAR_NAME_LEN;
+    }
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {
+        memcpy(&p_blob->a_var_types[i], p_data + total_size, sizeof(int));
+        total_size += sizeof(int);
+    }
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {
+        memcpy(&p_blob->a_var_len[i], p_data + total_size, sizeof(int));
+        total_size += sizeof(int);
+    }
+    p_blob->p_root_blob_data = p_data + total_size;
+
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {   
+        p_blob->a_var_data_offsets[i] = offset;
+        if (p_blob->a_var_types[i] == BLOB_VAR_TYPE_FLOAT)
+        {
+            offset += (sizeof(float) * p_blob->a_var_len[i]);
+        }
+        else if (p_blob->a_var_types[i] == BLOB_VAR_TYPE_INT)
+        {
+            offset += (sizeof(int) * p_blob->a_var_len[i]);
+        }
+        else if (p_blob->a_var_types[i] == BLOB_VAR_TYPE_UNSIGNED_INT)
+        {
+            offset += (sizeof(u_int32_t) * p_blob->a_var_len[i]);
+        }
+    }
+    p_blob->base_blob_size = offset;
+    p_blob->total_blob_size = offset * (p_blob->n_repetitions + 1);
+    total_size += p_blob->total_blob_size;
+    *p_total_size = total_size;
+    return 0;
+}
+
+int
+blob_retrieve_float_a(blob *p_blob, char *var_name, const float **pp_var_val, int *p_n, int rep)
+{
+    int i;
+    int var_idx = -1;
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {
+        if (  (0 == strcmp(var_name, p_blob->aa_var_names[i]))
+            &&(p_blob->a_var_types[i] == BLOB_VAR_TYPE_FLOAT)
+            )
+        {
+            var_idx = i;
+        }
+    }
+    if (-1 == var_idx)
+    {
+        printf("Error, no variable with this name found in blob. Likely blob has changed structure.\n");
+        return -1;
+    }
+    *pp_var_val = (const float*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
+    *p_n = p_blob->a_var_len[var_idx];
+}
+
+int
+blob_retrieve_int_a(blob *p_blob, char *var_name, const int **pp_var_val, int *p_n, int rep)
+{
+    int i;
+    int var_idx = -1;
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {
+        if (  (0 == strcmp(var_name, p_blob->aa_var_names[i]))
+            &&(p_blob->a_var_types[i] == BLOB_VAR_TYPE_INT)
+            )
+        {
+            var_idx = i;
+        }
+    }
+    if (-1 == var_idx)
+    {
+        printf("Error, no variable with this name found in blob. Likely blob has changed structure.\n");
+        return -1;
+    }
+    *pp_var_val = (const int*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
+    *p_n = p_blob->a_var_len[var_idx];
+}
+
+int
+blob_retrieve_unsigned_int_a(blob *p_blob, char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
+{
+    int i;
+    int var_idx = -1;
+    for (i=0; i<p_blob->n_vars_in_blob; i++)
+    {
+        if (  (0 == strcmp(var_name, p_blob->aa_var_names[i]))
+            &&(p_blob->a_var_types[i] == BLOB_VAR_TYPE_UNSIGNED_INT)
+            )
+        {
+            var_idx = i;
+        }
+    }
+    if (-1 == var_idx)
+    {
+        printf("Error, no variable with this name found in blob. Likely blob has changed structure.\n");
+        return -1;
+    }
+    *pp_var_val = (const unsigned int*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
+    *p_n = p_blob->a_var_len[var_idx];
+}

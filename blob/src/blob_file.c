@@ -102,6 +102,7 @@ _blob_file_int_a(char *var_name, int *p_var_val, int n)
 
     return ret;
 }
+
 int
 _blob_file_unsigned_int_a(char *var_name, unsigned int *p_var_val, int n)
 {

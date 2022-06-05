@@ -28,6 +28,7 @@ typedef struct minimal_websocket_s {
 	size_t max_tx_size;
 	size_t max_rx_size;
 	int b_overwrite_on_send; /* Overwrite rather than append to send buffer */
+	int b_new_data;
 } minimal_websocket_s;
 
 static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len )
@@ -42,6 +43,17 @@ static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:
 			/* Handle incomming messages here. */
+			p_min_ws = (minimal_websocket*)lws_get_protocol(wsi)->user;
+			printf("-- Received a packet--\n");
+			if (len > p_min_ws->p_tx_rx_info->n_max_rx_data)
+			{
+				printf("Error, rx buffer size not large enough.\n");
+				break;
+			}
+			memcpy(p_min_ws->p_tx_rx_info->p_rx_data, in, len);
+			p_min_ws->p_tx_rx_info->n_rx_current_data = len;
+			p_min_ws->b_new_data = 1;
+			lws_set_timer_usecs(p_min_ws->web_socket, -1);
 			break;
 		case LWS_CALLBACK_CLIENT_WRITEABLE:
 			p_min_ws = (minimal_websocket*)lws_get_protocol(wsi)->user;
@@ -64,6 +76,9 @@ static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason
 			}
 			p_min_ws->web_socket = NULL;
 			break;
+		case LWS_CALLBACK_TIMER:
+			lws_set_timer_usecs(p_min_ws->web_socket, -1);
+			lws_cancel_service(p_min_ws->p_context);
 		default:
 			//printf("reason: %d\n", reason);
 			break;
@@ -187,13 +202,23 @@ minimal_websocket_set_send_data(minimal_websocket *p_self,
 
 void
 minimal_websocket_get_recv_data(minimal_websocket *p_self,
-								unsigned char *p_data,
+								unsigned char **pp_data,
 								size_t *n_bytes
 								)
 {
-	(void)p_self;
-	(void)p_data;
-	(void)n_bytes;
+	if (p_self->b_new_data)
+	{
+		/* Return point to websocket buffer */
+		*pp_data = p_self->p_tx_rx_info->p_rx_data;
+		*n_bytes = p_self->p_tx_rx_info->n_rx_current_data;
+		p_self->b_new_data = 0;
+	}
+	else
+	{
+		/* Return point to websocket buffer */
+		*pp_data = NULL;
+		*n_bytes = 0;
+	}
 }
 
 
@@ -224,6 +249,7 @@ minimal_websocket_service(minimal_websocket *p_self)
 			printf("Probably connected OK\n");
 		}
 	}
+	lws_set_timer_usecs(p_self->web_socket, 500);
 	lws_service( p_self->p_context, /* timeout_ms = */ 5 );
 }
 

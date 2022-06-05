@@ -12,7 +12,7 @@ typedef struct minimal_websocket_cfg
 } minimal_websocket_cfg;
 
 void
-minimal_websocket_get_recv_data(minimal_websocket *p_self, unsigned char *p_data, size_t *n_bytes);
+minimal_websocket_get_recv_data(minimal_websocket *p_self, unsigned char **pp_data, size_t *n_bytes);
 
 int
 minimal_websocket_init(minimal_websocket **pp_self, minimal_websocket_cfg *p_cfg);
