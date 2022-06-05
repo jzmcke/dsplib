@@ -35,9 +35,9 @@ int _blob_node_close(blob_node **pp_blob_node);
 int _blob_socket_flush();
 
 int _blob_socket_retrieve_start(char *node_name);
-int _blob_socket_retrieve_float_a(char *var_name, const float **pp_var_val, int *n, int rep);
-int _blob_socket_retrieve_int_a(char *var_name, const int **pp_var_val, int *n, int rep);
-int _blob_socket_retrieve_unsigned_int_a(char *var_name, const unsigned int **pp_var_val, int *n, int rep);
+int _blob_socket_retrieve_float_a(char *var_name, const float **pp_var_val, int *p_n, int rep);
+int _blob_socket_retrieve_int_a(char *var_name, const int **pp_var_val, int *p_n, int rep);
+int _blob_socket_retrieve_unsigned_int_a(char *var_name, const unsigned int **pp_var_val, int *p_n, int rep);
 int __blob_disassemble_data(blob_node **pp_node, unsigned char *p_data, size_t *p_size);
 int _blob_socket_retrieve_flush();
 
@@ -47,12 +47,17 @@ struct blob_socket_state_s
     minimal_websocket *p_min_ws;
 };
 
+typedef struct blob_socket_queue_s
+{
+    unsigned char **pp_queue;
+} blob_socket_queue;
+
 typedef struct blob_retrieve_s
 {
     blob_node *p_root_node;
     blob_node *p_cur_node;
     unsigned char *p_data; /* Full data */
-    unsigned char *p_queue_data;
+    blob_socket_queue *p_queue;
 };
 
 typedef struct blob_retrieve_s blob_retrieve;
@@ -372,14 +377,14 @@ int
 __blob_disassemble_data(blob_node **pp_node, unsigned char *p_data, size_t *p_size)
 {
     size_t total_size = 0;
-    blob_node *p_node;
+    blob_node *p_node = *pp_node;
     int b_has_blob;
     int child;
     if (p_node == NULL)
     {
         /* Only allocate a new node if there is not an existing one to repopulate */
         p_node = (blob_node*)calloc(sizeof(blob_node), 1);
-
+        *pp_node = p_node;
         /* Assume blob structure unchanging across each blob tree - this does entire process does not
            need be re-executed for each new blob */
         memcpy(p_node->p_name, p_data + total_size, sizeof(char)*MAX_NODENAME_LEN);
@@ -406,7 +411,7 @@ __blob_disassemble_data(blob_node **pp_node, unsigned char *p_data, size_t *p_si
             int i, rep;
             unsigned int offset=0;
             size_t blob_size = 0;            
-            blob_set_from_data(p_node->p_blob, p_data, &blob_size);
+            blob_set_from_data(p_node->p_blob, p_data + total_size, &blob_size);
             total_size += blob_size;
         }
         for (child=0; child<p_node->n_children; child++)
@@ -426,139 +431,142 @@ __blob_disassemble_data(blob_node **pp_node, unsigned char *p_data, size_t *p_si
     return 0;
 }   
 
+void
+__blob_socket_retrieve_queue_push(blob_socket_queue *p_queue, unsigned char *p_new_data, size_t size)
+{
+    (void)p_queue;
+    (void)p_new_data;
+    (void)size;
+}
+
+void
+__blob_socket_retrieve_queue_pull(blob_socket_queue *p_queue, unsigned char **pp_queue_pop, size_t queue_pop_size)
+{
+    (void)p_queue;
+    (void)pp_queue_pop;
+    (void)queue_pop_size;
+}
+
 int
 _blob_socket_retrieve_start(char *p_name)
 {
     int child;
-    if (  (blob_sr.p_cur_node == blob_sr.p_root_node)
-        &&(0 == strcmp(p_name, blob_sr.p_root_node->p_name))
-        )
+    size_t recv_total_size;
+    size_t queue_pop_size;
+    unsigned char *p_recv_data;
+    unsigned char *p_queue_pop;
+
+    /* Read into the queue. Override the queue if it already exists */
+    minimal_websocket_service(blob_ss.p_min_ws);
+    minimal_websocket_get_recv_data(blob_ss.p_min_ws, &p_recv_data, &recv_total_size);
+
+    __blob_socket_retrieve_queue_push(blob_sr.p_queue, p_recv_data, recv_total_size);
+    __blob_socket_retrieve_queue_pull(blob_sr.p_queue, &p_queue_pop, &queue_pop_size);
+    /* For now */
+    p_queue_pop = p_recv_data;
+    queue_pop_size = recv_total_size;
+
+    if (NULL != p_queue_pop)
     {
-        size_t total_size;
-        /* if the queue is full, grab data from the queue! */
-        if (NULL != blob_sr.p_queue_data)
+        if (  (NULL == blob_sr.p_root_node))
         {
-            blob_sr.p_data = blob_sr.p_queue_data;
-            free(blob_sr.p_data);
-        }
-        
-        /* Disassemble the data and create the node-tree */
-        __blob_disassemble_data(blob_sr.p_root_node, blob_sr.p_data, &total_size);
-        
-        /* Could both be NULL, so update p_cur_node to the root node since disassemble will do the allocate */
-        blob_sr.p_cur_node = blob_sr.p_root_node;
-    }
-    else
-    {
-        int next = -1;
-        for (child=0; child<blob_sr.p_root_node->n_children; child++)
-        {
-            if (0 == strcmp(p_name, blob_sr.p_cur_node->p_name))
+            size_t total_size;
+            /* Disassemble the data and create the node-tree */
+            __blob_disassemble_data(&blob_sr.p_root_node, p_queue_pop, &total_size);
+
+            if (total_size != queue_pop_size)
             {
-                next = child;   
+                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", total_size, queue_pop_size);
             }
+            /* Could both be NULL, so update p_cur_node to the root node since disassemble will do the allocate */
+            blob_sr.p_cur_node = blob_sr.p_root_node;
         }
-        if (next == -1)
-        {
-            printf("Error, invalid node name\n");
-            return -1;
-        }
-
-        blob_sr.p_cur_node = blob_sr.p_cur_node->ap_child_nodes[next];
-    }
-    return 0;
-}
-
-
-int _blob_socket_retrieve_float_a(char *var_name, const float **pp_var_val, int *n, int rep)
-{
-    int i;
-    int var_idx = -1;
-    *n = 0;
-    *pp_var_val = NULL;
-    if (NULL != blob_sr.p_cur_node)
-    {
-        for (i=0; i<blob_sr.p_cur_node->p_blob->n_vars_in_blob; i++)
-        {
-            if (  (0 == strcmp(var_name, blob_sr.p_cur_node->p_blob->aa_var_names[i]))
-                &&(blob_sr.p_cur_node->p_blob->a_var_types[i] == BLOB_VAR_TYPE_FLOAT)
-                )
-            {
-                var_idx = i;
-            }
-        }
-        if (-1 == var_idx)
-        {
-            printf("Error, no variable with this name found in blob. Likely blob has changed structure.\n");
-            return -1;
-        }
-        *pp_var_val = (const float*)(blob_sr.p_cur_node->p_blob->p_root_blob_data + rep * blob_sr.p_cur_node->p_blob->base_blob_size + blob_sr.p_cur_node->p_blob->a_var_data_offsets[var_idx]);
-        *n = blob_sr.p_cur_node->p_blob->a_var_len[var_idx];
-    }
-    return 0;
-}
-
-int _blob_socket_retrieve_int_a(char *var_name, const int **pp_var_val, int *n, int rep)
-{
-    int i;
-    int var_idx = -1;
-    *n = 0;
-    *pp_var_val = NULL;
-    if (NULL != blob_sr.p_cur_node)
-    {
-        for (i=0; i<blob_sr.p_cur_node->p_blob->n_vars_in_blob; i++)
-        {
-            if (  (0 == strcmp(var_name, blob_sr.p_cur_node->p_blob->aa_var_names[i]))
-                &&(blob_sr.p_cur_node->p_blob->a_var_types[i] == BLOB_VAR_TYPE_INT)
+        else if (  (blob_sr.p_cur_node == blob_sr.p_root_node)
+            &&(0 == strcmp(p_name, blob_sr.p_root_node->p_name))
             )
-            {
-                var_idx = i;
-            }
-        }
-        if (-1 == var_idx)
         {
-            printf("Error, no variable with this name found in blob. Likely blob has changed structure.\n");
-            return -1;
+            size_t total_size;
+            
+            /* Disassemble the data and create the node-tree */
+            __blob_disassemble_data(&blob_sr.p_root_node, p_queue_pop, &total_size);
+            
+            if (total_size != queue_pop_size)
+            {
+                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", total_size, queue_pop_size);
+            }
+
+            /* Could both be NULL, so update p_cur_node to the root node since disassemble will do the allocate */
+            blob_sr.p_cur_node = blob_sr.p_root_node;
         }
-        *pp_var_val = (const int*)(blob_sr.p_cur_node->p_blob->p_root_blob_data + rep * blob_sr.p_cur_node->p_blob->base_blob_size + blob_sr.p_cur_node->p_blob->a_var_data_offsets[var_idx]);
-        *n = blob_sr.p_cur_node->p_blob->a_var_len[var_idx];
+        else
+        {
+            int next = -1;
+            for (child=0; child<blob_sr.p_root_node->n_children; child++)
+            {
+                if (0 == strcmp(p_name, blob_sr.p_cur_node->p_name))
+                {
+                    next = child;   
+                }
+            }
+            if (next == -1)
+            {
+                printf("Error, invalid node name\n");
+                return -1;
+            }
+            blob_sr.p_cur_node = blob_sr.p_cur_node->ap_child_nodes[next];
+        }
     }
+    
     return 0;
 }
 
-int _blob_socket_retrieve_unsigned_int_a(char *var_name, const unsigned int **pp_var_val, int *n, int rep)
+
+int _blob_socket_retrieve_float_a(char *var_name, const float **pp_var_val, int *p_n, int rep)
 {
-    int i;
-    int var_idx = -1;
-    *n = 0;
+    *p_n = 0;
     *pp_var_val = NULL;
     if (NULL != blob_sr.p_cur_node)
     {
-        for (i=0; i<blob_sr.p_cur_node->p_blob->n_vars_in_blob; i++)
-        {
-            if (  (0 == strcmp(var_name, blob_sr.p_cur_node->p_blob->aa_var_names[i]))
-                &&(blob_sr.p_cur_node->p_blob->a_var_types[i] == BLOB_VAR_TYPE_UNSIGNED_INT)
-            )
-            {
-                var_idx = i;
-            }
-        }
-        if (-1 == var_idx)
-        {
-            printf("Error, no variable with this name found in blob. Likely blob has changed structure.\n");
-            return -1;
-        }
-        *pp_var_val = (const unsigned int*)(blob_sr.p_cur_node->p_blob->p_root_blob_data + rep * blob_sr.p_cur_node->p_blob->base_blob_size + blob_sr.p_cur_node->p_blob->a_var_data_offsets[var_idx]);
-        *n = blob_sr.p_cur_node->p_blob->a_var_len[var_idx];
+        blob_retrieve_float_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
     }
     return 0;
 }
 
-int _blob_socket_retrieve_flush()
+int _blob_socket_retrieve_int_a(char *var_name, const int **pp_var_val, int *p_n, int rep)
 {
-    if (NULL != blob_sr.p_cur_node->p_parent_node)
+    int i;
+    int var_idx = -1;
+    *p_n = 0;
+    *pp_var_val = NULL;
+    if (NULL != blob_sr.p_cur_node)
     {
-        blob_sr.p_cur_node = blob_sr.p_cur_node->p_parent_node;
+        blob_retrieve_int_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+    }
+    return 0;
+}
+
+int _blob_socket_retrieve_unsigned_int_a(char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
+{
+    int i;
+    int var_idx = -1;
+    *p_n = 0;
+    *pp_var_val = NULL;
+    if (NULL != blob_sr.p_cur_node)
+    {
+        blob_retrieve_unsigned_int_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+    }
+    return 0;
+}
+
+int
+_blob_socket_retrieve_flush()
+{
+    if (NULL != blob_sr.p_cur_node)
+    {
+        if (NULL != blob_sr.p_cur_node->p_parent_node)
+        {
+            blob_sr.p_cur_node = blob_sr.p_cur_node->p_parent_node;
+        }
     }
     return 0;
 }
