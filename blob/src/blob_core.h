@@ -53,3 +53,6 @@ blob_set_from_data(blob *p_blob, char *p_data, size_t *p_total_size);
 
 void
 blob_update_root_data(blob *p_blob, char *p_data);
+
+size_t
+blob_get_serialized_data_size(blob *p_blob);
