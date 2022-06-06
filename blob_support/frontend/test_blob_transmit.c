@@ -8,10 +8,6 @@ int
 main(int argc, char **argv)
 
 {
-    int up = 31;
-    int down = 72;
-    int forward_backward, left_right;
-    int i = 0;
     BLOB_SOCKET_INIT("192.168.50.115", 8000);
     
     while (1)
@@ -45,7 +41,10 @@ main(int argc, char **argv)
         {
             right = 1;
         }
-        printf("Sending forward_backward: %d\n", forward_backward);
+        else
+        {
+            continue;
+        }
         BLOB_START("main");
         BLOB_INT_A("forward", &forward, 1);
         BLOB_INT_A("backward", &backward, 1);
