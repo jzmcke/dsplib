@@ -63,8 +63,16 @@ wsServer.on('request', function(request) {
     web_clients.push(connection);
     connection.on('message', function(message) {       
         web_clients.forEach(function(client) {
-            client.send(message.binaryData);
-            console.log("forwarding " + count);
+            if (client != connection)
+            {
+                
+                var ip = Buffer.from(connection.remoteAddress);
+                var cat_buf = Buffer.alloc(128 - ip.length);
+                var send_buf = Buffer.concat([ip, cat_buf, message.binaryData]);
+
+                client.send(send_buf);
+                console.log("forwarding " + count);
+            }
         });
         count = count + 1;
     });

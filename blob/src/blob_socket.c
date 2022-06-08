@@ -15,7 +15,6 @@
 typedef struct blob_node_s
 {
     char                 p_name[MAX_NODENAME_LEN];  /* Name of this blob node. */
-    int                  blob_idx;
     blob                *p_blob; /* For repeated calls inside a node. All blobs should be identical, except for their data.. */
     int                  n_children;
     struct blob_node_s    *ap_child_nodes[MAX_CHILD_NODES];

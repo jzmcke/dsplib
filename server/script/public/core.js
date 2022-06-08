@@ -1,112 +1,13 @@
 let ws = new WebSocket('ws://192.168.50.115:8000');
 ws.binaryType = 'arraybuffer';
-var data = [];
-var last_data_point = 0;
-var dec = new TextDecoder("utf-8");
+new_plot_id = 0;
 
-function readInt32(buffer)
-{
-    dv = new DataView(buffer);
-    val = dv.getInt32(0, true);
-    buffer = buffer.slice(4);
-    return [buffer, val];
-}
-
-function readString(buffer)
-{
-    val = String.fromCharCode.apply(null, new Uint8Array(buffer.slice(0,128))).replace(/\0.*$/g,'');
-    buffer = buffer.slice(128);
-    return [buffer, val];
-}
-
-function blobDecode(buffer)
-{
-    var out = {};
-    var nodename;
-    var n_children;
-    var b_has_blob;
-    var n_variables;
-    var varnames, varname;
-    var types, type;
-    var lens, len;
-
-    [buffer, nodename] = readString(buffer);
-
-    [buffer, n_children] = readInt32(buffer);
-
-    [buffer, b_has_blob] = readInt32(buffer);
-
-    if (b_has_blob == 1) {
-        [buffer, n_repetitions] = readInt32(buffer);
-        [buffer, n_variables] = readInt32(buffer);
-
-        varnames = []
-        types = []
-        lens = []
-        for (i=0; i<n_variables; i++)
-        {
-            [buffer, varname] = readString(buffer);
-            out[varname] = []
-            varnames.push(varname);
-        }
-        for (i=0; i<n_variables; i++)
-        {
-            [buffer, type] = readInt32(buffer);
-            types.push(type);
-        }
-        for (i=0; i<n_variables; i++)
-        {
-            [buffer, len] = readInt32(buffer);
-            lens.push(len);
-        }
-        
-        for (rep=0; rep<n_repetitions+1; rep++)
-        {
-            for (i=0; i<n_variables; i++)
-            {
-                if (types[i] == 0)
-                {
-                    /* int */
-                    val = new Int32Array(buffer.slice(0, lens[i] * 4));
-                    buffer = buffer.slice(lens[i] * 4);
-                } else if (types[i] == 1)
-                {
-                    /* float */
-                    val = new Float32Array(buffer.slice(0, lens[i] * 4));
-                    buffer = buffer.slice(lens[i] * 4);
-                } else if (types[i] == 2)
-                {
-                    /* unsigned int */
-                    val = new Uint32Array(buffer.slice(0, lens[i] * 4));
-                    buffer = buffer.slice(lens[i] * 4);
-                }
-
-                out[varnames[i]].push(val)
-            }
-        }
-    }
-    for (i=0; i<n_children; i++)
-    {
-        [buffer, childout, childname] = blobDecode(buffer);
-        out[childname] = childout;
-    }
-    
-    return [buffer, out, nodename];
-}
-
-function addTrace()
-{  
-    id = this.id.split('-')[1]
-    var dropdown = document.getElementById("dropdown-" + id);
-    
-    Plotly.addTraces('plot-' + id, {y: [], name: dropdown.value});
-    n_traces_per_plot[id] = n_traces_per_plot[id] + 1;
-    trace_vars_per_plot[id].push(dropdown.value); 
-    
-};
 
 function addTraceToPlot()
 {
+    /* Add a trace to a given plot when this button is pressed. Unfortunately cannot make
+       this a method of class Plot, because there is a conflict with the *this* keyword (used
+       by both the button and the object instance */
     id = this.id.split('-')[1]
 
     var i = 0;
@@ -117,13 +18,12 @@ function addTraceToPlot()
         {
             a_plots[i].addTrace();
         }
-    }
-    
+    } 
 }
 
 class Plot
 {
-    constructor(plot_type, plot_id)
+    constructor(plot_type, plot_id, trace_options)
     {
         this.plot_type = plot_type;
         this.plot_id = plot_id;
@@ -131,17 +31,8 @@ class Plot
         this.traces = [];
 
         this.max_plot_len = 1000;
-        this.x_pos = 0;
         this.plot_data = [];
         this.max_heatmap_len = 100;
-
-        this.last_data_point = 0;
-
-        if (valid_logs.length == 0)
-        {
-            console.log("No data is streaming yet");
-            return;
-        }
 
         this.plotdata = [];
         
@@ -162,19 +53,19 @@ class Plot
         this.plot_selection.id = "dropdown-" + plot_id;
         this.plot_selection.class = "dropdown-traces";
 
-        for (const log of valid_logs)
+        for (const trace of trace_options)
         {
             var option = document.createElement("option");
             option.class = "dropdown-option";
-            option.value = log.split(" ");
-            option.text = log;
+            option.value = trace.split(" ");
+            option.text = trace;
             this.plot_selection.appendChild(option);
         }
 
         this.add_trace = document.createElement("button");
         this.add_trace.class = "add-trace";
         this.add_trace.type = 'button';
-        this.add_trace.innerHTML = 'Add trace'
+        this.add_trace.innerHTML = 'Add trace';
         this.add_trace.id = "button-" + plot_id;
         this.add_trace.onclick = addTraceToPlot;
 
@@ -185,35 +76,45 @@ class Plot
         this.plot_div.appendChild(this.add_trace);
         this.element.appendChild(this.plot_div);
         
+        /* Update this for each datapoitn added to the plot, before the plot operation is called */
+        this.data_added_since_plot = 0;
+        this.update_count_thresh = 1;
+        this.plot_len = 100;
+        this.indices = [];
         Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout);
     }
-    
+
+    setUpdateCountThresh(update_count_thresh)
+    {
+        this.update_count_thresh = update_count_thresh;
+    }
+
     addTrace()
     {
         var trace;
         var dropdown = document.getElementById("dropdown-" + id);
         Plotly.addTraces('plot-' + this.plot_id, {y: [], name: dropdown.value});
-        this.n_traces = this.n_traces + 1;
+        
         this.traces.push(dropdown.value);
 
         this.plot_data = [];
         for (trace of this.traces)
         {
             this.plot_data.push([]);
+            this.indices.push(this.n_traces);
         }
+        this.n_traces = this.n_traces + 1;
     }
 
     addData(in_data)
     {
-        var data_to_plot;
-        var indices = [];
+        
         var index = 0;
         var trace;
         var trace_idx = 0;
         for (trace of this.traces)
         {
             var data;
-            var these_vars = [];
             var scopes = trace.split('.');
             var this_var = in_data[scopes[0]];
             for (scope of scopes.slice(1))
@@ -229,61 +130,70 @@ class Plot
                 data = this_var[0];
             }
             this.plot_data[trace_idx].push(data);
-            indices.push(index);
+            
             index = index + 1;
             trace_idx = trace_idx + 1;
         }
+        this.data_added_since_plot = this.data_added_since_plot + 1;
+        if (this.data_added_since_plot >= this.update_count_thresh)
+        {
+            this.plot()
+        }
+    }
+
+    plot()
+    {
+        var indices = [];
+        var trace;
+        var i = 0;
+        for (trace of this.plot_data)
+        {
+            indices.push(i);
+            i = i + 1;
+        }
         if (this.plot_data.length > 0)
         {
-            data_to_plot = data;
             if (this.plot_type == 'heatmap')
             {
-                // data_to_add = Array.from(data_to_plot[0][0])
-                // this.plot_data.push(data_to_add);
-                // data_to_plot = math.reshape(this.plot_data, [data.length, this.plot_data.length])
                 Plotly.restyle('plot-' + this.plot_id, {z: [...this.plot_data]}, indices)
 
-                if (this.plot_data.length >= 100)
+                if (this.plot_data.length >= this.plot_len)
                 {
                     this.plot_data = this.plot_data.slice(1);
                 }
             }
             else
             {
-                // data_to_add = Array.from()
-                // this.plot_data.push(data_to_plot)
-                // var to_plot = math.reshape(this.plot_data, [this.n_traces, this.plot_data.length])
-                Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data}, indices);
-                if (this.plot_data[0].length >= 100)
+                if (this.plot_data[0].length >= this.plot_len)
                 {
                     var i = 0;
+                    let trace;
                     for (trace of this.traces)
                     {
-                        this.plot_data[i] = this.plot_data[i].slice(1);
+                        this.plot_data[i] = this.plot_data[i].slice(this.plot_data[i].length - this.plot_len);
                         i += 1;
                     } 
                     
                 }
+                Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data}, indices);
             }
         }
-        else
-        {
-            data_to_plot = [this.last_data_point];
-            indices = [0];
-        }
-       
-        this.last_data_point = data_to_plot[data_to_plot.length-1];
-        this.x_pos = this.x_pos + 1 % this.max_plot_len;
+        this.data_added_since_plot = 0;
     }
 }
-
-var new_plot_id = 0;
 
 function addPlot()
 {
     var plot_type = document.getElementById("plot-type-select");
-    a_plots[new_plot_id] = new Plot(plot_type.value, new_plot_id);
-    valid_plot_ids.push(new_plot_id);
+    var ip_addr_dropdown = document.getElementById("plot-ip-address");
+    
+    if (!(ip_addr_dropdown.value))
+    {
+        console.log("No data is streaming yet");
+        return;
+    }
+    a_plots[new_plot_id] = new Plot(plot_type.value, new_plot_id, ip_options[ip_addr_dropdown.value]);
+    a_plot_device_ip[new_plot_id] = ip_addr_dropdown.value;
     new_plot_id = new_plot_id + 1;
 }
 
@@ -310,25 +220,42 @@ function propertiesToArray(obj) {
 
 
 var b_discovered = false;
-var valid_logs = [];
 var a_plots = [];
-var valid_plot_ids = [];
+var a_plot_device_ip = [];
+var ip_options = {};
 // message received - show the message in div#messages
 ws.onmessage = function(event) {
     let dv = new DataView(event.data);
-    [buffer, out, nodename] = blobDecode(dv.buffer);
+    var ip_addr;
+    var trace_options;
+    
+    [buffer, ip_addr] = readString(dv.buffer);
+    [buffer, out, nodename] = blobDecode(buffer);
     root = {};
     root[nodename] = out;
-    
-    if (!b_discovered)
+
+    if (!(ip_addr in ip_options))
     {
-        valid_logs = propertiesToArray(out);
-        b_discovered = true;
+        /* Add the IP address option to the global dropdown */
+        /* For now, multiple devices from the same IP are not supported */
+        var ip_dropdown = document.getElementById("plot-ip-address");
+        var option = document.createElement("option");
+        option.class = "dropdown-option";
+        option.value = ip_addr;
+        option.text = ip_addr;
+        ip_dropdown.appendChild(option);
+
+        trace_options = propertiesToArray(out);
+        ip_options[ip_addr] = trace_options;        
     }
     
     for (plot_idx=0; plot_idx<a_plots.length; plot_idx++)
     {
-        a_plots[plot_idx].addData(out);
+        /* only add data to the plot if the IP address matches */
+        if (a_plot_device_ip[plot_idx] == ip_addr)
+        {
+            a_plots[plot_idx].addData(out);
+        }
     }
 };
 
