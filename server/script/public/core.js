@@ -30,7 +30,6 @@ class Plot
         this.n_traces = 0;
         this.traces = [];
 
-        this.max_plot_len = 1000;
         this.plot_data = [];
         this.max_heatmap_len = 100;
 
@@ -79,11 +78,12 @@ class Plot
         /* Update this for each datapoitn added to the plot, before the plot operation is called */
         this.data_added_since_plot = 0;
         this.update_count_thresh = 1;
-        this.plot_len = 100;
         this.indices = [];
         this.epoch_ms = [];
         this.last_data = null;
-        this.b_time_axis = false;
+        this.time_len_secs = 10;
+        this.b_relayout = false;
+        this.b_trigger_relayout = false;
         Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout);
     }
 
@@ -102,7 +102,8 @@ class Plot
             this.plot_data.push([]);
             this.indices.push(this.n_traces);
         }
-
+        this.b_relayout = false;
+        this.b_trigger_relayout = false;
     }
     addTrace()
     {
@@ -111,10 +112,6 @@ class Plot
         this.traces.push(dropdown.value);
         this.resetTraces();
         this.n_traces = this.n_traces + 1;
-    }
-    setAxisTime(val)
-    {
-        this.b_time_axis = val;
     }
 
     addData(in_data, epoch_ms)
@@ -170,7 +167,12 @@ class Plot
         /* Reference to 0 epoch. Latest sample should be 0-time */
         for (epoch of this.epoch_ms)
         {
-            epoch_adj.push(epoch - this.epoch_ms[0])
+            var diff = epoch - this.epoch_ms[this.epoch_ms.length - 1];
+            epoch_adj.push(diff);
+            if (diff <= -this.time_len_secs * 1000 & !this.b_relayout)
+            {
+                this.b_trigger_relayout = true;
+            }
         }
         for (trace of this.plot_data)
         {
@@ -190,25 +192,37 @@ class Plot
             }
             else
             {
-                if (this.plot_data[0].length >= this.plot_len)
+                if (this.b_trigger_relayout)
                 {
-                    var i = 0;
-                    let trace;
+                    Plotly.relayout('plot-' + this.plot_id, {'xaxis.range': [-1000 * this.time_len_secs, 0]});
+                    this.b_relayout = true;
+                    this.b_trigger_relayout = false;
+                }
+                else if (!this.b_relayout)
+                {
+                    Plotly.relayout('plot-' + this.plot_id, {'xaxis.range': [epoch_adj[0], 0]})
+                }
+                var i = 0;
+                let trace;
+                
+                /* Remove elements while time since the recently added point is greater than this.time_len */
+                var remove_idx = 0;
+                while (remove_idx >= 0)
+                {
+                    remove_idx = epoch_adj.findIndex((epoch_ms) => {epoch_ms < -1000 * this.time_len_secs})
+                }
+                if (remove_idx != -1)
+                {
+                    epoch_adj = epoch_adj.slice(remove_idx);
                     for (trace of this.traces)
                     {
-                        this.plot_data[i] = this.plot_data[i].slice(this.plot_data[i].length - this.plot_len);
+                        this.plot_data[i] = this.plot_data[i].slice(remove_idx);
                         i += 1;
-                    } 
-                    this.epoch_ms = this.epoch_ms.slice(this.epoch_ms.length - this.plot_len);
+                    }
                 }
-                if (this.b_time_axis)
-                {
-                    Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data, x: [epoch_adj]}, indices);
-                }
-                else
-                {
-                    Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data}, indices);
-                }
+                    
+        
+                Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data, x: [epoch_adj]}, indices);
             }
         }
         this.data_added_since_plot = 0;
@@ -256,14 +270,7 @@ function toggleSynchronisation()
     var cb = document.getElementById("checkbox-synchronise");
     b_synchronise = cb.checked;
 }
-function toggleTimeAxis()
-{
-    var cb = document.getElementById("checkbox-time-axis");
-    for (plot_idx=0; plot_idx<a_plots.length; plot_idx++)
-    {
-        a_plots[plot_idx].setAxisTime(cb.checked);
-    }
-}
+
 
 var b_discovered = false;
 var a_plots = [];
