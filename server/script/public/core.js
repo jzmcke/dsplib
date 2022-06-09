@@ -81,6 +81,9 @@ class Plot
         this.update_count_thresh = 1;
         this.plot_len = 100;
         this.indices = [];
+        this.epoch_ms = [];
+        this.last_data = null;
+        this.b_time_axis = false;
         Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout);
     }
 
@@ -89,29 +92,44 @@ class Plot
         this.update_count_thresh = update_count_thresh;
     }
 
-    addTrace()
+    resetTraces()
     {
         var trace;
-        var dropdown = document.getElementById("dropdown-" + id);
-        Plotly.addTraces('plot-' + this.plot_id, {y: [], name: dropdown.value});
-        
-        this.traces.push(dropdown.value);
-
         this.plot_data = [];
+        this.epoch_ms = [];
         for (trace of this.traces)
         {
             this.plot_data.push([]);
             this.indices.push(this.n_traces);
         }
+
+    }
+    addTrace()
+    {
+        var dropdown = document.getElementById("dropdown-" + id);
+        Plotly.addTraces('plot-' + this.plot_id, {y: [], name: dropdown.value});
+        this.traces.push(dropdown.value);
+        this.resetTraces();
         this.n_traces = this.n_traces + 1;
     }
+    setAxisTime(val)
+    {
+        this.b_time_axis = val;
+    }
 
-    addData(in_data)
+    addData(in_data, epoch_ms)
     {
         
         var index = 0;
         var trace;
         var trace_idx = 0;
+
+        if (in_data == null)
+        {
+            in_data = this.last_data;
+        }
+        this.last_data = in_data;
+        
         for (trace of this.traces)
         {
             var data;
@@ -134,6 +152,7 @@ class Plot
             index = index + 1;
             trace_idx = trace_idx + 1;
         }
+        this.epoch_ms.push(epoch_ms);
         this.data_added_since_plot = this.data_added_since_plot + 1;
         if (this.data_added_since_plot >= this.update_count_thresh)
         {
@@ -146,6 +165,13 @@ class Plot
         var indices = [];
         var trace;
         var i = 0;
+        var epoch_adj = [];
+        var epoch;
+        /* Reference to 0 epoch. Latest sample should be 0-time */
+        for (epoch of this.epoch_ms)
+        {
+            epoch_adj.push(epoch - this.epoch_ms[0])
+        }
         for (trace of this.plot_data)
         {
             indices.push(i);
@@ -173,9 +199,16 @@ class Plot
                         this.plot_data[i] = this.plot_data[i].slice(this.plot_data[i].length - this.plot_len);
                         i += 1;
                     } 
-                    
+                    this.epoch_ms = this.epoch_ms.slice(this.epoch_ms.length - this.plot_len);
                 }
-                Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data}, indices);
+                if (this.b_time_axis)
+                {
+                    Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data, x: [epoch_adj]}, indices);
+                }
+                else
+                {
+                    Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data}, indices);
+                }
             }
         }
         this.data_added_since_plot = 0;
@@ -218,13 +251,29 @@ function propertiesToArray(obj) {
     return paths(obj);
 }
 
+function toggleSynchronisation()
+{
+    var cb = document.getElementById("checkbox-synchronise");
+    b_synchronise = cb.checked;
+}
+function toggleTimeAxis()
+{
+    var cb = document.getElementById("checkbox-time-axis");
+    for (plot_idx=0; plot_idx<a_plots.length; plot_idx++)
+    {
+        a_plots[plot_idx].setAxisTime(cb.checked);
+    }
+}
 
 var b_discovered = false;
 var a_plots = [];
 var a_plot_device_ip = [];
 var ip_options = {};
+var b_synchronise = 0;
+const start_time = new Date();
 // message received - show the message in div#messages
 ws.onmessage = function(event) {
+    var rcv_time = new Date();
     let dv = new DataView(event.data);
     var ip_addr;
     var trace_options;
@@ -234,6 +283,7 @@ ws.onmessage = function(event) {
     root = {};
     root[nodename] = out;
 
+    
     if (!(ip_addr in ip_options))
     {
         /* Add the IP address option to the global dropdown */
@@ -254,7 +304,12 @@ ws.onmessage = function(event) {
         /* only add data to the plot if the IP address matches */
         if (a_plot_device_ip[plot_idx] == ip_addr)
         {
-            a_plots[plot_idx].addData(out);
+            a_plots[plot_idx].addData(out, rcv_time - start_time);
+        }
+        else if (b_synchronise)
+        {
+            /* Repeat the last plot value but at the current timestamp */
+            a_plots[plot_idx].addData(null, rcv_time - start_time);
         }
     }
 };
