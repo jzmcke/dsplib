@@ -1,0 +1,19 @@
+body {
+  margin: 3%
+}
+
+button.car-control {
+  background-color: #white;
+  color: black;
+  font-size: 34px;
+  text-align: center;
+  padding: 20px 40px;
+  border: 2px solid skyblue;
+  cursor: pointer;
+  margin: 1%;
+}
+
+.button-group {
+  width: 100%;
+  text-align: center;
+}
