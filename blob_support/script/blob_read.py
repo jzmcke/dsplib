@@ -73,6 +73,25 @@ def blob_minimal(node_tree):
 
     return {node_tree['name']: out}
 
+def blob_flatten(blob_minimal):
+    var_names = []
+    var_vals = []
+    for key in blob_minimal:
+        if isinstance(blob_minimal[key], dict):
+            new_dict = blob_flatten(blob_minimal[key])
+            newvarnames = new_dict.keys()
+            newvarvals = [new_dict[key] for key in newvarnames]
+            for varname, varval in zip(newvarnames, newvarvals):
+                var_names.append(key + '.' + varname)
+                var_vals.append(varval)
+        else:
+            var_names.append(key)
+            var_vals.append(blob_minimal[key])
+
+    return dict((k, v) for k, v in zip(var_names, var_vals))
+
+
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
