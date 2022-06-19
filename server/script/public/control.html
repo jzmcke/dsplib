@@ -1,0 +1,37 @@
+<html>
+<title>Command Centre</title>
+<link href="control-styles.css" rel="stylesheet">
+<body>
+<script src="./math.js"></script>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+
+<div class="car-controls">
+<div class="button-group">
+    <button class="car-control" onclick="goForward()">Forward</button>
+</div>
+<div class="button-group">
+    <button class="car-control" onclick="goLeft()">Left</button>
+    <button class="car-control" onclick="goRight()">Right</button>
+</div>
+<div class="button-group">
+    <button class="car-control" onclick="goBackward()">Backward</button>
+</div>
+<div class="button-group">
+    <button class="car-control" onclick="stop()">Stop</button>
+</div>
+
+</div>
+
+<!-- div with messages -->
+<div id="messages"></div>
+<script src="./blob.js"></script>
+<script src="./controls-core.js"></script>
+<script src="../dist/bundle.js"></script>
+
+<div id="root"></div>
+
+</html>

@@ -52,14 +52,26 @@ def blob_read_node_tree(data):
                 blob['data']['vars'][var]['value'][:, rep] = struct.unpack(tok, new_data[:4*blob['data']['vars'][var]['len']])
                 new_data = new_data[4*blob['data']['vars'][var]['len']:]
 
-    for i in range(n_children):
-        new_node, node_name, new_data = blob_read_node_tree(new_data)
+    if n_children > 0:
         blob['nodes'] = dict()
-        blob['nodes'][node_name] = new_node
+
+    for i in range(n_children):
+        new_node, new_data = blob_read_node_tree(new_data)
+    
+    blob['name'] = node_name
+    return blob, new_data
+
+def blob_minimal(node_tree):
+    out = dict()
+    if node_tree['data']['n_variables'] > 0:
+        for var in node_tree['data']['vars'].keys():
+            out[var] = node_tree['data']['vars'][var]['value']
         
-    return blob, node_name, new_data
+    if 'nodes' in node_tree:
+        for node_name in node_tree['nodes'].keys():
+            out.update(blob_minimal(node_tree['nodes'][node_name]))
 
-
+    return {node_tree['name']: out}
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -72,11 +84,7 @@ if __name__ == '__main__':
     with open(args.filename, 'rb') as rd:
         file_data = rd.read()
         node_tree = dict()
-        blob, node_name, new_data = blob_read_node_tree(file_data)
-        node_tree[node_name] = blob
-    
-    import pdb
-    pdb.set_trace()
+        blob, new_data = blob_read_node_tree(file_data)
 
 
 
