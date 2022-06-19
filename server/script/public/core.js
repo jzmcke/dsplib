@@ -21,6 +21,20 @@ function addTraceToPlot()
     } 
 }
 
+function update_n_points()
+{
+    id = this.id.split('-')[2];
+    var i = 0;
+
+    for (i=0; i<a_plots.length; i++)
+    {
+        if (a_plots[i].plot_id == id)
+        {
+            a_plots[i].updateCountThresh();
+        }
+    }
+}
+
 class Plot
 {
     constructor(plot_type, plot_id, trace_options)
@@ -70,14 +84,33 @@ class Plot
 
         this.element = document.getElementById("plots");
         
+        this.n_points_per_update_select = document.createElement("select");
+        this.n_points_per_update_select.id = "dropdown-npoints-" + plot_id;
+        this.n_points_per_update_select.class = "dropdown-traces";
+        var n_point_opts = [1, 10, 50, 100, 500, 1000];
+        for (const n_point of n_point_opts)
+        {
+            var option = document.createElement("option");
+            option.class = "dropdown-option";
+            option.value = n_point
+            option.text = n_point;
+            this.n_points_per_update_select.appendChild(option);
+        }
+        this.n_points_per_update_select.onchange = update_n_points;
         this.plot_div.appendChild(this.plot_section);
         this.plot_div.appendChild(this.plot_selection);
         this.plot_div.appendChild(this.add_trace);
+        this.n_points_update_div = document.createElement("div");
+        this.n_points_update_div.id = "npoints-div-" + plot_id;
+        this.n_points_update_div.class = "npoints-div";
+        this.n_points_update_div.innerHTML = 'n points per update: ';
+        this.n_points_update_div.appendChild(this.n_points_per_update_select);
+        this.plot_div.appendChild(this.n_points_update_div)
         this.element.appendChild(this.plot_div);
         
         /* Update this for each datapoitn added to the plot, before the plot operation is called */
         this.data_added_since_plot = 0;
-        this.update_count_thresh = 1;
+        this.update_count_thresh = 10;
         this.indices = [];
         this.epoch_ms = [];
         this.last_data = null;
@@ -87,9 +120,10 @@ class Plot
         Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout);
     }
 
-    setUpdateCountThresh(update_count_thresh)
+    updateCountThresh()
     {
-        this.update_count_thresh = update_count_thresh;
+        var dropdown = document.getElementById("dropdown-npoints-" + this.plot_id);
+        this.update_count_thresh = dropdown.value;
     }
 
     resetTraces()

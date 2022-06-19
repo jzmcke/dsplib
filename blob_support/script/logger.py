@@ -31,7 +31,7 @@ def on_message(ws, message):
     msgs.append(message)
     times.append(time.time() - start_time)
 
-    if len(msgs) > 1000:
+    if len(msgs) > 50000:
         with open(os.path.join(folder_name, f"log_{file_count}.pkl"),'wb') as pkl_wt:
             pickle.dump({'data': msgs, 'times': times}, pkl_wt)
         file_count += 1
@@ -49,27 +49,6 @@ def on_close(ws, close_status_code, close_msg):
 def on_open(ws):
     print("Opened connection")
 
-# def process_log(i):
-#     global b_msg_lock
-#     print('hello')
-#     while (1):
-#         if len(msgs) > 0 and len(queue) == 0 and not b_msg_lock:
-#             print(len(queue))
-#             b_msg_lock = True
-#             msgs = msgs + queue
-#             b_msg_lock = False
-#             queue = []
-#         print("Foo")
-#         if len(queue) > 0:
-#             new_blob = queue.pop(0)
-#             ip_addr = str(new_blob[:128])
-#             if not (ip_addr in log_dict.keys()):
-#                 log_dict[ip_addr] = []
-            
-#             blob, node_name, _ = br.blob_read_node_tree(new_blob[128:])
-            
-#             log_dict[ip_addr].append({node_name: blob})
-            
 def close_up_shop(signal, frame):
     global msgs
     global times
