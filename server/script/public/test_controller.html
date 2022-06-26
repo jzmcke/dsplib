@@ -1,0 +1,53 @@
+<html>
+<title>Command Centre</title>
+<link href="slider-styles.css" rel="stylesheet">
+<body>
+<script src="./math.js"></script>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+
+<div class="car-controls">
+<div class="slidecontainer">
+    <div>Speed</div>
+    <input type="range" min="-100" max="100" value="0" class="slider" id="speed-range">
+</div>
+<div id="speed-display"></div>
+
+<div class="slidecontainer">
+    <div>Angle</div>
+    <input type="range" min="0" max="100" value="50" class="slider" id="angle-range">
+</div>
+<div id="angle-display"></div>
+
+<div class="textcontainer">
+    <div>Kick timeout ms</div>
+    <input type="text" class="text-input" id="kick-timeout-ms">
+</div>
+<div id="kick-display"></div>
+
+<div class="textcontainer">
+    <div>Deadzone speed</div>
+    <input type="text" class="text-input" id="deadzone-speed">
+</div>
+<div id="deadzone-speed-display"></div>
+
+<div class="checkboxcontainer">
+    <div>Deadzone compensation</div>
+    <input type="checkbox" class="checkbox-input" id="deadzone-compensate">
+</div>
+<div id="deadzone-display"></div>
+
+</div>
+
+<!-- div with messages -->
+<div id="messages"></div>
+<script src="./blob.js"></script>
+<script src="./test_controller.js"></script>
+<script src="../dist/bundle.js"></script>
+
+<div id="root"></div>
+
+</html>
