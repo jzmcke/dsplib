@@ -1,12 +1,12 @@
 var control_blob = {};
-control_blob['pwm_level'] = 0;
+control_blob['speed'] = 0;
 
 let ws = new WebSocket('ws://192.168.50.115:8000');
 var b_pause = false;
 var b_begin = false;
 
 var cal_index = 0;
-var pwm_level = []
+var speed_level = []
 function toggle()
 {
     elem = document.getElementById("button-pause");
@@ -26,24 +26,25 @@ function begin()
 {
     var buffer = new ArrayBuffer(0);
     var i, j;
-    pwm_max = 4096;
+    var speed_max = 1.0;
+    var speed_off = 0.0;
     levels = 20;
-    for (i=0; i<pwm_max; i += (pwm_max / levels))
+    for (i=0; i<speed_max; i += (speed_max / levels))
     {
-        for (j=0; j<pwm_max; j += (pwm_max / levels))
+        for (j=0; j<speed_max; j += (speed_max / levels))
         {
-            pwm_level.push(4096 + i);
-            pwm_level.push(4096 + j);
-            pwm_level.push(4096);
-            pwm_level.push(4096 - i);
-            pwm_level.push(4096 - j);
-            pwm_level.push(4096);
-            pwm_level.push(4096 + i);
-            pwm_level.push(4096 - j);
-            pwm_level.push(4096);
-            pwm_level.push(4096 - i);
-            pwm_level.push(4096 + j);
-            pwm_level.push(4096);
+            speed_level.push(speed_off + i);
+            speed_level.push(speed_off + j);
+            speed_level.push(speed_off);
+            speed_level.push(speed_off - i);
+            speed_level.push(speed_off - j);
+            speed_level.push(speed_off);
+            speed_level.push(speed_off + i);
+            speed_level.push(speed_off - j);
+            speed_level.push(speed_off);
+            speed_level.push(speed_off - i);
+            speed_level.push(speed_off + j);
+            speed_level.push(speed_off);
         }
     }
     cal_index = 0;
@@ -52,13 +53,13 @@ function begin()
 function progressUpdate() {
     var elem = document.getElementById("myBar");
     var width;
-    if (pwm_level.length == 0)
+    if (speed_level.length == 0)
     {
         width = 0;
     }
     else
     {
-        width = cal_index / pwm_level.length * 100;
+        width = cal_index / speed_level.length * 100;
     }
     elem.style.width = width + "%";
 }
@@ -66,12 +67,12 @@ function progressUpdate() {
 
 function calibrate()
 {
-    if (cal_index < pwm_level.length)
+    if (cal_index < speed_level.length)
     {
         if (!b_pause)
-        {            
+        { 
             buffer = new ArrayBuffer(0);
-            control_blob['pwm_level'] = new Int32Array([pwm_level[cal_index]]);
+            control_blob['speed'] = new Float32Array([speed_level[cal_index]]);
             buffer = blobEncode(control_blob, 'main', buffer);
             ws.send(buffer);
             cal_index++;
