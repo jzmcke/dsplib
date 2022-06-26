@@ -164,6 +164,7 @@ class Plot
         for (trace of this.traces)
         {
             var data;
+            var scope;
             var scopes = trace.split('.');
             var this_var = in_data[scopes[0]];
             for (scope of scopes.slice(1))
@@ -236,24 +237,28 @@ class Plot
                 {
                     Plotly.relayout('plot-' + this.plot_id, {'xaxis.range': [epoch_adj[0], 0]})
                 }
-                var i = 0;
-                let trace;
                 
+                let trace;
+
                 /* Remove elements while time since the recently added point is greater than this.time_len */
                 var remove_idx = 0;
                 while (remove_idx >= 0)
                 {
-                    remove_idx = epoch_adj.findIndex((epoch_ms) => {epoch_ms < -1000 * this.time_len_secs})
-                }
-                if (remove_idx != -1)
-                {
-                    epoch_adj = epoch_adj.slice(remove_idx);
-                    for (trace of this.traces)
+                    const is_outside_range = (epoch_ms) => epoch_ms < -1000 * this.time_len_secs;
+                    remove_idx = epoch_adj.findIndex(is_outside_range);
+                    if (remove_idx != -1)
                     {
-                        this.plot_data[i] = this.plot_data[i].slice(remove_idx);
-                        i += 1;
+                        var i = 0;
+                        epoch_adj.splice(remove_idx, 1);
+                        this.epoch_ms.splice(remove_idx, 1);
+                        for (trace of this.traces)
+                        {
+                            this.plot_data[i].splice(remove_idx, 1);
+                            i += 1;
+                        }
                     }
                 }
+                
                     
         
                 Plotly.restyle('plot-' + this.plot_id, {y: this.plot_data, x: [epoch_adj]}, indices);
