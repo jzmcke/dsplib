@@ -50,7 +50,7 @@ class Plot
         this.plotdata = [];
         
         this.plotlayout = {
-            title: plot_type + ' ' + plot_id,
+            title: '',
             showlegend: true,
             legend: {"orientation": "h"}
             // paper_bgcolor: '#3b3838',

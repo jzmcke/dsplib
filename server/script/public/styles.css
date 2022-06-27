@@ -9,15 +9,22 @@ justify-content: center;
   margin: 2%;
 }
 
+div.inner-app-controls
+{
+  float:none;
+  top: 50%;
+  transform: translate(0, 10%);
+}
+
 div.app-controls {
   background-color: white;
-  height: 2%;
+  height: 50;
   text-align: center;
   background-color: white;
   box-shadow: 0px 8px 16px 0px rgb(0 0 0);
   border-radius: 05px;
-  width: 80%;
-  margin-left: 10%;
+  width: 85%;
+  margin-left: 7.5%;
   border: black;
   border-width: thick;
 }
@@ -65,7 +72,7 @@ color:white;
 
 div.plot-container-upper {
 width: 97%;
-height: 25%;
+height: 530;
 margin: 1.5%;
 text-align: center;
 }
