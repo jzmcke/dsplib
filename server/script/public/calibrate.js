@@ -28,23 +28,25 @@ function begin()
     var i, j;
     var speed_max = 1.0;
     var speed_off = 0.0;
-    levels = 20;
-    for (i=0; i<speed_max; i += (speed_max / levels))
+    var speeds = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.7, 1.0]
+    for (i=0; i<speeds.length; i++)
     {
-        for (j=0; j<speed_max; j += (speed_max / levels))
+        for (j=0; j<speeds.length; j++)
         {
-            speed_level.push(speed_off + i);
-            speed_level.push(speed_off + j);
+            speed_level.push(speeds[i]);
+            speed_level.push(speeds[j]);
             speed_level.push(speed_off);
-            speed_level.push(speed_off - i);
-            speed_level.push(speed_off - j);
+            speed_level.push(-speeds[i]);
+            speed_level.push(-speeds[j]);
             speed_level.push(speed_off);
-            speed_level.push(speed_off + i);
-            speed_level.push(speed_off - j);
+
+            speed_level.push(speeds[i]);
+            speed_level.push(-speeds[j]);
             speed_level.push(speed_off);
-            speed_level.push(speed_off - i);
-            speed_level.push(speed_off + j);
+            speed_level.push(-speeds[i]);
+            speed_level.push(speeds[j]);
             speed_level.push(speed_off);
+            
         }
     }
     cal_index = 0;

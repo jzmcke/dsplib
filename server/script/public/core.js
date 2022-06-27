@@ -51,20 +51,26 @@ class Plot
         
         this.plotlayout = {
             title: plot_type + ' ' + plot_id,
+            showlegend: true,
+            legend: {"orientation": "h"}
             // paper_bgcolor: '#3b3838',
             // plot_bgcolor: '#3b3838'
         };
 
         this.plot_div = document.createElement("div");
         this.plot_div.id = "plot-div-" + plot_id;
-        this.plot_div.class = "plot-container";
+        this.plot_div.classList.add("plot-container-upper");
 
         this.plot_section = document.createElement("div");
-        this.plot_section.setAttribute("id", "plot-" + plot_id);
+        this.plot_section.id = "plot-" + plot_id;
 
+        this.plot_config = document.createElement("div");
+        this.plot_config.id = "plot-config-" + plot_id;
+        this.plot_config.classList.add("plot-config");
+        
         this.plot_selection = document.createElement("select");
         this.plot_selection.id = "dropdown-" + plot_id;
-        this.plot_selection.class = "dropdown-traces";
+        this.plot_selection.classList.add("dropdown-traces");
 
         for (const trace of trace_options)
         {
@@ -76,7 +82,7 @@ class Plot
         }
 
         this.add_trace = document.createElement("button");
-        this.add_trace.class = "add-trace";
+        this.add_trace.classList.add("add-trace");
         this.add_trace.type = 'button';
         this.add_trace.innerHTML = 'Add trace';
         this.add_trace.id = "button-" + plot_id;
@@ -86,26 +92,31 @@ class Plot
         
         this.n_points_per_update_select = document.createElement("select");
         this.n_points_per_update_select.id = "dropdown-npoints-" + plot_id;
-        this.n_points_per_update_select.class = "dropdown-traces";
+        this.n_points_per_update_select.classList.add("dropdown-traces");
         var n_point_opts = [1, 10, 50, 100, 500, 1000];
         for (const n_point of n_point_opts)
         {
             var option = document.createElement("option");
-            option.class = "dropdown-option";
+            if (n_point == 10)
+            {
+                option.selected = "selected";
+            }
+            option.classList.add("dropdown-option");
             option.value = n_point
             option.text = n_point;
             this.n_points_per_update_select.appendChild(option);
         }
         this.n_points_per_update_select.onchange = update_n_points;
         this.plot_div.appendChild(this.plot_section);
-        this.plot_div.appendChild(this.plot_selection);
-        this.plot_div.appendChild(this.add_trace);
+        this.plot_config.appendChild(this.plot_selection);
+        this.plot_config.appendChild(this.add_trace);
         this.n_points_update_div = document.createElement("div");
         this.n_points_update_div.id = "npoints-div-" + plot_id;
-        this.n_points_update_div.class = "npoints-div";
-        this.n_points_update_div.innerHTML = 'n points per update: ';
+        this.n_points_update_div.classList.add("dropdown-traces");
+        this.n_points_update_div.innerHTML = 'Update rate: ';
         this.n_points_update_div.appendChild(this.n_points_per_update_select);
-        this.plot_div.appendChild(this.n_points_update_div)
+        this.plot_config.appendChild(this.n_points_update_div)
+        this.plot_div.appendChild(this.plot_config);
         this.element.appendChild(this.plot_div);
         
         /* Update this for each datapoitn added to the plot, before the plot operation is called */
@@ -117,7 +128,8 @@ class Plot
         this.time_len_secs = 10;
         this.b_relayout = false;
         this.b_trigger_relayout = false;
-        Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout);
+        var config = {'responsive': true};
+        Plotly.newPlot('plot-' + this.plot_id, this.plotdata, this.plotlayout, config);
     }
 
     updateCountThresh()
@@ -336,7 +348,7 @@ ws.onmessage = function(event) {
         /* For now, multiple devices from the same IP are not supported */
         var ip_dropdown = document.getElementById("plot-ip-address");
         var option = document.createElement("option");
-        option.class = "dropdown-option";
+        option.classList.add("dropdown-option");
         option.value = ip_addr;
         option.text = ip_addr;
         ip_dropdown.appendChild(option);

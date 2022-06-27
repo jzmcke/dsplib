@@ -2,15 +2,25 @@
 <title>Command Centre</title>
 <link href="styles.css" rel="stylesheet">
 <body>
+<div id="header" class="header"></div>
+<script
+    src="https://code.jquery.com/jquery-3.3.1.js"
+    integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+    crossorigin="anonymous">
+</script>
+<script>
+$(function(){
+    $("#header").load("header.html"); 
+    console.log('Supposedly loaded.');
+});
+</script>
 <script src="./plotly.js"></script>
 <script src="./math.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<div class="header">
-    <p><a class="header-links" href="control.html">Controller</a></p>
-    <p><a class="header-links" href="calibrate.html">Calibrate</a></p>
-</div>
+
+
 
 <!-- <p><a href="command_centre.html">Command Centre</a> -->
 </body>
