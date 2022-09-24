@@ -59,8 +59,10 @@ def to_nc(log_dict, log_dir):
         
         time = np.array(time)
         ncdf_dict = dict()
+        
         for k in proto_blob.keys():
-            ncdf_dict[k] = xr.DataArray(np.stack(arr_dict[k]), dims=('time', 'n', 'rep'), coords={'time': time})
+            vars = np.stack(arr_dict[k])
+            ncdf_dict[k] = xr.DataArray(vars, dims=('time', f'n{vars.shape[1]}', 'rep'), coords={'time': time})
 
         ds = xr.Dataset(ncdf_dict)
         ds.to_netcdf(os.path.join(log_dir, f'{ip_addr}.nc'))
