@@ -25,13 +25,13 @@ int
 blob_init(blob **pp_blob, blob_cfg *p_cfg);
 
 int
-blob_float_a(blob *p_blob, char *p_var_name, float *p_var_val, int n);
+blob_float_a(blob *p_blob, const char *p_var_name, float *p_var_val, int n);
 
 int
-blob_int_a(blob *p_blob, char *p_var_name, int *p_var_val, int n);
+blob_int_a(blob *p_blob, const char *p_var_name, int *p_var_val, int n);
 
 int
-blob_unsigned_int_a(blob *p_blob, char *p_var_name, unsigned int *p_var_val, int n);
+blob_unsigned_int_a(blob *p_blob, const char *p_var_name, unsigned int *p_var_val, int n);
 
 void
 blob_get_data(blob *p_blob, unsigned char **pp_data, size_t *blob_size);
@@ -40,13 +40,13 @@ void
 blob_get_info(blob *p_blob, int **pp_blob_len, int **pp_var_types, char **pp_var_names, int *n_vars, int *n_repititions);
 
 int
-blob_retrieve_float_a(blob *p_blob, char *var_name, const float **pp_var_val, int *p_n, int rep);
+blob_retrieve_float_a(blob *p_blob, const char *var_name, const float **pp_var_val, int *p_n, int rep);
 
 int
-blob_retrieve_int_a(blob *p_blob, char *var_name, const int **pp_var_val, int *p_n, int rep);
+blob_retrieve_int_a(blob *p_blob, const char *var_name, const int **pp_var_val, int *p_n, int rep);
 
 int
-blob_retrieve_unsigned_int_a(blob *p_blob, char *var_name, const unsigned int **pp_var_val, int *p_n, int rep);
+blob_retrieve_unsigned_int_a(blob *p_blob, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep);
 
 size_t
 blob_set_from_data(blob *p_blob, char *p_data, size_t *p_total_size);

@@ -59,7 +59,7 @@ blob_close(blob **pp_blob)
 }
 
 int
-blob_float_a(blob *p_blob, char *p_var_name, float *p_var_val, int n)
+blob_float_a(blob *p_blob, const char *p_var_name, float *p_var_val, int n)
 {
     unsigned char *p_var_data;
     if (  (p_blob->var_idx == p_blob->n_vars_in_blob)
@@ -132,7 +132,7 @@ blob_float_a(blob *p_blob, char *p_var_name, float *p_var_val, int n)
 }
 
 int
-blob_int_a(blob *p_blob, char *p_var_name, int *p_var_val, int n)
+blob_int_a(blob *p_blob, const char *p_var_name, int *p_var_val, int n)
 {
     unsigned char *p_var_data;
     
@@ -203,7 +203,7 @@ blob_int_a(blob *p_blob, char *p_var_name, int *p_var_val, int n)
 }
 
 int
-blob_unsigned_int_a(blob *p_blob, char *p_var_name, unsigned int *p_var_val, int n)
+blob_unsigned_int_a(blob *p_blob, const char *p_var_name, unsigned int *p_var_val, int n)
 {
     unsigned char *p_var_data;
 
@@ -364,7 +364,7 @@ blob_update_root_data(blob *p_blob, char *p_data)
 }
 
 int
-blob_retrieve_float_a(blob *p_blob, char *var_name, const float **pp_var_val, int *p_n, int rep)
+blob_retrieve_float_a(blob *p_blob, const char *var_name, const float **pp_var_val, int *p_n, int rep)
 {
     int i;
     int var_idx = -1;
@@ -387,7 +387,7 @@ blob_retrieve_float_a(blob *p_blob, char *var_name, const float **pp_var_val, in
 }
 
 int
-blob_retrieve_int_a(blob *p_blob, char *var_name, const int **pp_var_val, int *p_n, int rep)
+blob_retrieve_int_a(blob *p_blob, const char *var_name, const int **pp_var_val, int *p_n, int rep)
 {
     int i;
     int var_idx = -1;
@@ -410,7 +410,7 @@ blob_retrieve_int_a(blob *p_blob, char *var_name, const int **pp_var_val, int *p
 }
 
 int
-blob_retrieve_unsigned_int_a(blob *p_blob, char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
+blob_retrieve_unsigned_int_a(blob *p_blob, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
 {
     int i;
     int var_idx = -1;
