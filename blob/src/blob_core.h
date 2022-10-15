@@ -1,3 +1,5 @@
+#ifndef BLOB_CORE_H
+#define BLOB_CORE_H
 #include <stdio.h>
 
 #define BLOB_PROTOCOL_VERSION_FIRST (1)
@@ -59,3 +61,5 @@ blob_core_get_serialized_data_size(blob_core *p_blob);
 
 int
 blob_core_header_get_size(blob_core *p_blob, size_t *p_size);
+
+#endif

@@ -10,7 +10,6 @@
 
 int
 main(int argc, char **argv)
-
 {
     static struct termios oldt, newt;
     char c;
@@ -31,7 +30,7 @@ main(int argc, char **argv)
 
     BLOB_INIT("192.168.50.115", 8000);
     
-    while (c = getchar())
+    while ((c = getchar()))
     {
         int forward = 0;
         int backward = 0;
@@ -71,9 +70,9 @@ main(int argc, char **argv)
         BLOB_INT_A("right", &right, 1);
         BLOB_INT_A("stop", &stop, 1);
         BLOB_FLUSH();
-        usleep(100000); // 20ms
+        usleep(100000); // 100000ms
     }
     
-    BLOB_SOCKET_TERMINATE();
+    BLOB_TERMINATE();
     return 0;
 }

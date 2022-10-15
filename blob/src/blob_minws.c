@@ -1,6 +1,6 @@
 /* Responsible for send data callback, populating a shared receive data array and */
 #include "blob/include/blob.h"
-#include "blob_comm.h"
+#include "blob/include/blob_comm.h"
 #include "blob_node_tree.h"
 #include "minimal_websocket/include/minimal_websocket.h"
 

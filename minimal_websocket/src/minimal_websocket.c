@@ -119,7 +119,8 @@ minimal_websocket_init(minimal_websocket **pp_self, minimal_websocket_cfg *p_cfg
 	(*pp_self)->p_tx_rx_info = (tx_rx_info*)malloc(sizeof(tx_rx_info));
 	(*pp_self)->p_tx_rx_info->p_tx_data = (unsigned char*)malloc(LWS_SEND_BUFFER_PRE_PADDING + p_cfg->max_tx_size + LWS_SEND_BUFFER_POST_PADDING);
 	(*pp_self)->p_tx_rx_info->p_rx_data = (unsigned char*)malloc(p_cfg->max_rx_size);
-	
+	(*pp_self)->b_new_data = 0;
+
 	/* Always transmit the maximum number of bytes; lots of redundancy for now! */
 	(*pp_self)->p_tx_rx_info->n_tx_current_data = 0;
 	(*pp_self)->p_tx_rx_info->n_rx_current_data = 0;

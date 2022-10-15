@@ -2,16 +2,16 @@
 
 #include "blob_node_tree.h"
 #include "blob/include/blob.h"
-#include "blob_comm.h"
 #include "blob_node.h"
+
+blob_comm_cfg g_blob_ccfg;
+blob *p_g_blob;
 
 struct blob_s
 {
    blob_node_tree_send     *p_nts;
    blob_node_tree_retrieve *p_ntr;
 };
-
-blob_comm_cfg g_blob_ccfg;
 
 int
 blob_init(blob_comm_cfg *p_blob_comm_cfg)

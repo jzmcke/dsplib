@@ -7,6 +7,10 @@
 #include "blob_core.h"
 #include "blob_node.h"
 
+
+#define IP_ADDRESS_BYTES 128
+#define DOWNSTREAM_SERVER_HEADER_BYTES  (IP_ADDRESS_BYTES)
+
 struct blob_node_tree_send_s
 {
     blob_node *p_cur_node;
@@ -22,7 +26,7 @@ struct blob_node_tree_retrieve_s
     size_t           n_data;
     int            (*p_rcv_cb)(void*, unsigned char**, size_t*);
     void            *p_rcv_context;
-    int              b_new_data
+    int              b_new_data;
 };
 
 int
@@ -152,14 +156,18 @@ int
 blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name)
 {
     int child;
-    size_t recv_total_size = p_ntr->n_data;
-    unsigned char *p_recv_data = p_ntr->p_data;
-
+    unsigned char *p_node_tree = NULL;
+    size_t rcv_node_tree_bytes = 0;
     if (  (NULL == p_ntr->p_root_node) || (p_ntr->p_cur_node == p_ntr->p_root_node))
     {
         /* Root node */
         /* Receive data via the provided send callback */
         p_ntr->p_rcv_cb(p_ntr->p_rcv_context, &p_ntr->p_data, &p_ntr->n_data);
+
+        p_node_tree = p_ntr->p_data + DOWNSTREAM_SERVER_HEADER_BYTES;
+        rcv_node_tree_bytes = p_ntr->n_data - DOWNSTREAM_SERVER_HEADER_BYTES;
+
+
         if (NULL != p_ntr->p_data)
         {
             p_ntr->b_new_data = 1;
@@ -173,9 +181,9 @@ blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name
         {
             size_t total_size;
             /* Disassemble the data and create the node-tree */
-            blob_node_disassemble_data(&p_ntr->p_root_node, p_ntr->p_data, &total_size);
+            blob_node_disassemble_data(&p_ntr->p_root_node, p_node_tree, &total_size);
 
-            if (total_size != p_ntr->n_data)
+            if (total_size != rcv_node_tree_bytes)
             {
                 printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", (unsigned int)total_size, (unsigned int)p_ntr->n_data);
             }
@@ -189,11 +197,11 @@ blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name
             size_t total_size;
             
             /* Disassemble the data and create the node-tree */
-            blob_node_disassemble_data(&p_ntr->p_root_node, p_ntr->p_data, &total_size);
+            blob_node_disassemble_data(&p_ntr->p_root_node, p_node_tree, &total_size);
             
-            if (total_size != p_ntr->n_data)
+            if (total_size != rcv_node_tree_bytes)
             {
-                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", (unsigned int)total_size, (unsigned int)p_ntr->n_data);
+                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", (unsigned int)total_size, (unsigned int)rcv_node_tree_bytes);
             }
 
             /* Could both be NULL, so update p_cur_node to the root node since disassemble will do the allocate */
@@ -217,8 +225,6 @@ blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name
             p_ntr->p_cur_node = p_ntr->p_cur_node->ap_child_nodes[next];
         }
     }
-    p_ntr->p_data = p_recv_data;
-    p_ntr->n_data = recv_total_size;
     return 0;
 }
 

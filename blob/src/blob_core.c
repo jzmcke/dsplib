@@ -408,6 +408,7 @@ blob_core_retrieve_int_a(blob_core *p_blob, const char *var_name, const int **pp
     }
     *pp_var_val = (const int*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
     *p_n = p_blob->a_var_len[var_idx];
+    return BLOB_OK;
 }
 
 int
