@@ -1,3 +1,6 @@
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 #include "blob_core.h"
 #include "blob_node.h"
 
@@ -82,7 +85,7 @@ int
 blob_node_retrieve_float_a(blob_node *p_node, const char *var_name, const float **pp_var_val, int *p_n, int rep)
 {
 
-    blob_core_retrieve_float_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+    blob_core_retrieve_float_a(p_node->p_blob, var_name, pp_var_val, p_n, rep);
     return 0;
 }
 
@@ -90,7 +93,7 @@ int
 blob_node_retrieve_int_a(blob_node *p_node, const char *var_name, const int **pp_var_val, int *p_n, int rep)
 {
 
-    blob_core_retrieve_int_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+    blob_core_retrieve_int_a(p_node->p_blob, var_name, pp_var_val, p_n, rep);
     return 0;
 }
 
@@ -98,7 +101,7 @@ int
 blob_node_retrieve_unsigned_int_a(blob_node *p_node, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
 {
 
-    blob_core_retrieve_unsigned_int_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+    blob_core_retrieve_unsigned_int_a(p_node->p_blob, var_name, pp_var_val, p_n, rep);
     return 0;
 }
 
@@ -111,20 +114,20 @@ blob_node_aggregate_data(blob_node *p_node, size_t *p_size)
     unsigned char *p_data;
     if (NULL != p_node->p_blob)
     {
-        blob_get_data(p_node->p_blob, &p_data, &tmp_size);
+        blob_core_get_data(p_node->p_blob, &p_data, &tmp_size);
         total_size += tmp_size;
     }
     
     for (int i=0; i<p_node->n_children; i++)
     {
         size_t tmp_size = 0;
-        blob_aggregate_data(p_node->ap_child_nodes[i], &tmp_size);
+        blob_node_aggregate_data(p_node->ap_child_nodes[i], &tmp_size);
         total_size += tmp_size;
     }
 
     if (NULL != p_node->p_blob)
     {
-        blob_header_get_size(p_node->p_blob, &tmp_size);
+        blob_core_header_get_size(p_node->p_blob, &tmp_size);
         total_size += tmp_size;
     }
     
@@ -144,7 +147,7 @@ blob_node_assemble_data(blob_node *p_node, unsigned char *p_data, size_t *p_size
     int n_initial_children = p_node->n_children;
     while (p_node->n_children > 0)
     {
-        blob_assemble_data(p_node->ap_child_nodes[p_node->n_children-1], p_data, &size_left);
+        blob_node_assemble_data(p_node->ap_child_nodes[p_node->n_children-1], p_data, &size_left);
         blob_node_close(&p_node->ap_child_nodes[p_node->n_children-1]);
         p_node->n_children--;
     }
@@ -163,16 +166,16 @@ blob_node_assemble_data(blob_node *p_node, unsigned char *p_data, size_t *p_size
         if (NULL != p_node->p_blob)
         {
             b_node_has_blob = 1;
-            blob_get_data(p_node->p_blob, &p_blob_data, &blob_size);
+            blob_core_get_data(p_node->p_blob, &p_blob_data, &blob_size);
             memcpy(p_data + size_left - blob_size, p_blob_data, blob_size);
             size_left -= blob_size;
             /* write the blob header */
-            blob_get_info(p_node->p_blob,
-                            &p_var_len,
-                            &p_var_types,
-                            &p_var_names,
-                            &n_vars,
-                            &n_repetitions);
+            blob_core_get_info(p_node->p_blob,
+                               &p_var_len,
+                               &p_var_types,
+                               &p_var_names,
+                               &n_vars,
+                               &n_repetitions);
             /* Copy the variable lengths into the buffer */
             memcpy(p_data + size_left - (n_vars * sizeof(int)), p_var_len, n_vars * sizeof(int));
             size_left -= (n_vars * sizeof(int));
@@ -259,7 +262,7 @@ blob_node_disassemble_data(blob_node **pp_node, unsigned char *p_data, size_t *p
     else
     {
         /* Fast method for updating blob data w.r.t a new packet. Assumes consistent packet sizes */
-        size_t blob_size = blob_get_serialized_data_size(p_node->p_blob);
+        size_t blob_size = blob_core_get_serialized_data_size(p_node->p_blob);
         size_t node_header_size = sizeof(char)*MAX_NODENAME_LEN + 2 * sizeof(int);
         if (NULL != p_node->p_blob)
         {

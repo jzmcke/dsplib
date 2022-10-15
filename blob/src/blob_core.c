@@ -1,6 +1,8 @@
 #include "blob_core.h"
+#include "blob/include/blob.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 struct blob_core_s
 {
@@ -20,7 +22,7 @@ struct blob_core_s
 };
 
 int
-blob_core_init(blob_core **pp_blob, blob_cfg *p_cfg)
+blob_core_init(blob_core **pp_blob, blob_core_cfg *p_cfg)
 {
     *pp_blob = (blob_core*)calloc(sizeof(blob_core), 1);
     (*pp_blob)->n_vars_in_blob = 0;
@@ -287,7 +289,6 @@ blob_core_get_info(blob_core *p_blob,
                    int  *n_vars,
                    int  *n_repetitions)
 {
-    char (*pointer)[BLOB_MAX_VAR_NAME_LEN] = p_blob->aa_var_names;
     *pp_var_len = p_blob->a_var_len;
     *pp_var_types = p_blob->a_var_types;
     *pp_var_names = (char*)p_blob->aa_var_names;
@@ -297,7 +298,7 @@ blob_core_get_info(blob_core *p_blob,
 
 size_t
 blob_core_set_from_data(blob_core *p_blob,
-                        char *p_data,
+                        unsigned char *p_data,
                         size_t *p_total_size)
 {
     size_t total_size = 0;
@@ -357,7 +358,7 @@ blob_core_get_serialized_data_size(blob_core *p_blob)
 }
 
 void
-blob_core_update_root_data(blob_core *p_blob, char *p_data)
+blob_core_update_root_data(blob_core *p_blob, unsigned char *p_data)
 {
     p_blob->p_root_blob_data = p_data + 2 * sizeof(int) + p_blob->n_vars_in_blob * (sizeof(char) * BLOB_MAX_VAR_NAME_LEN + sizeof(int) + sizeof(int));
 }
@@ -383,6 +384,7 @@ blob_core_retrieve_float_a(blob_core *p_blob, const char *var_name, const float 
     }
     *pp_var_val = (const float*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
     *p_n = p_blob->a_var_len[var_idx];
+    return BLOB_OK;
 }
 
 int
@@ -429,6 +431,7 @@ blob_core_retrieve_unsigned_int_a(blob_core *p_blob, const char *var_name, const
     }
     *pp_var_val = (const unsigned int*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
     *p_n = p_blob->a_var_len[var_idx];
+    return BLOB_OK;
 }
 
 int
@@ -455,5 +458,5 @@ blob_core_header_get_size(blob_core *p_blob, size_t *p_size)
     total_size += sizeof(int); /* Store the number of variables in the blob */
     total_size += sizeof(int); /* Store the number of repetititions of the variables in the blob */
     *p_size = total_size;
-    return 0;
+    return BLOB_OK;
 }

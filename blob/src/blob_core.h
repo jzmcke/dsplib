@@ -49,10 +49,13 @@ int
 blob_core_retrieve_unsigned_int_a(blob_core *p_blob, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep);
 
 size_t
-blob_core_set_from_data(blob_core *p_blob, char *p_data, size_t *p_total_size);
+blob_core_set_from_data(blob_core *p_blob, unsigned char *p_data, size_t *p_total_size);
 
 void
-blob_core_update_root_data(blob_core *p_blob, char *p_data);
+blob_core_update_root_data(blob_core *p_blob, unsigned char *p_data);
 
 size_t
 blob_core_get_serialized_data_size(blob_core *p_blob);
+
+int
+blob_core_header_get_size(blob_core *p_blob, size_t *p_size);
