@@ -4,21 +4,6 @@
 #include "blob_core.h"
 #include "blob_node.h"
 
-#define MAX_NODENAME_LEN (128)
-#define MAX_CHILD_NODES (32)
-#define MAX_BLOBS_PER_NODE (32)
-
-
-struct blob_node_s
-{
-    char                 p_name[MAX_NODENAME_LEN];  /* Name of this blob node. */
-    blob_core           *p_blob; /* For repeated calls inside a node. All blobs should be identical, except for their data.. */
-    int                  n_children;
-    struct blob_node_s  *ap_child_nodes[MAX_CHILD_NODES];
-    struct blob_node_s  *p_parent_node;
-    size_t               blob_size; /* Only valid after complete traverse */
-};
-
 int
 blob_node_close(blob_node **pp_blob_node)
 {
@@ -103,6 +88,12 @@ blob_node_retrieve_unsigned_int_a(blob_node *p_node, const char *var_name, const
 
     blob_core_retrieve_unsigned_int_a(p_node->p_blob, var_name, pp_var_val, p_n, rep);
     return 0;
+}
+
+void
+blob_node_get_data(blob_node *p_node, unsigned char **pp_data, size_t *p_base_blob_size)
+{
+    blob_core_get_data(p_node->p_blob, pp_data, p_base_blob_size);
 }
 
 int
@@ -244,8 +235,6 @@ blob_node_disassemble_data(blob_node **pp_node, unsigned char *p_data, size_t *p
         
         if (b_has_blob)
         {
-            int i, rep;
-            unsigned int offset=0;
             size_t blob_size = 0;            
             blob_core_set_from_data(p_node->p_blob, p_data + total_size, &blob_size);
             total_size += blob_size;

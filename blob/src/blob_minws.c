@@ -4,6 +4,18 @@
 #include "blob_node_tree.h"
 #include "minimal_websocket/include/minimal_websocket.h"
 
+int
+_blob_minws_init(blob_comm_cfg *p_cfg, char *addr, int port);
+
+int
+_blob_minws_terminate(blob_comm_cfg *p_blob_comm_cfg);
+
+int
+_blob_minws_rcv_callback(void *p_context, unsigned char **pp_recv_data, size_t *p_recv_total_size);
+
+int
+_blob_minws_send_callback(void *p_context, unsigned char *p_send_data, size_t total_size);
+
 typedef struct blob_minws_state_s
 {
     minimal_websocket *p_min_ws;
@@ -12,7 +24,6 @@ typedef struct blob_minws_state_s
 int
 _blob_minws_init(blob_comm_cfg *p_cfg, char *addr, int port)
 {
-    blob_state *p_blob_state;
     minimal_websocket *p_minws;
     minimal_websocket_cfg cfg;
     cfg.addr = addr;
@@ -33,7 +44,8 @@ _blob_minws_init(blob_comm_cfg *p_cfg, char *addr, int port)
 int
 _blob_minws_terminate(blob_comm_cfg *p_blob_comm_cfg)
 {
-    minimal_websocket_close(&((minimal_websocket*)p_blob_comm_cfg->p_send_context));
+    minimal_websocket *p_mws = (minimal_websocket*)(p_blob_comm_cfg->p_send_context);
+    minimal_websocket_close(&p_mws);
     return 0;
 }
 
@@ -42,11 +54,13 @@ _blob_minws_send_callback(void *p_context, unsigned char *p_send_data, size_t to
 {
     minimal_websocket_set_send_data((minimal_websocket*)p_context, p_send_data, total_size);
     minimal_websocket_service((minimal_websocket*)p_context);
+    return 0;
 };
 
 int
 _blob_minws_rcv_callback(void *p_context, unsigned char **pp_recv_data, size_t *p_recv_total_size)
 {
-    minimal_websocket_service((minimal_websocket*)p_context));
+    minimal_websocket_service((minimal_websocket*)p_context);
     minimal_websocket_get_recv_data((minimal_websocket*)p_context, pp_recv_data, p_recv_total_size);
+    return 0;
 };

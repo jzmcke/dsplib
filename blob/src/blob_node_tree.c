@@ -10,18 +10,19 @@
 struct blob_node_tree_send_s
 {
     blob_node *p_cur_node;
-    int       (*p_send_cb)(*void, *unsigned char, size_t);
+    int       (*p_send_cb)(void*, unsigned char*, size_t);
     void       *p_send_context;
 };
 
 struct blob_node_tree_retrieve_s
 {
-    blob_node *p_root_node;
-    blob_node *p_cur_node;
-    unsigned char *p_data; /* Full data */
-    size_t n_data;
-    int       (*p_rcv_cb)(*void, **unsigned char, *size_t);
-    void       *p_rcv_context;
+    blob_node       *p_root_node;
+    blob_node       *p_cur_node;
+    unsigned char   *p_data; /* Full data */
+    size_t           n_data;
+    int            (*p_rcv_cb)(void*, unsigned char**, size_t*);
+    void            *p_rcv_context;
+    int              b_new_data
 };
 
 int
@@ -49,6 +50,7 @@ blob_node_tree_retrieve_init(blob_node_tree_retrieve **pp_nts, blob_ntr_cfg *p_b
     p_node_tree->n_data = 0;
     p_node_tree->p_rcv_cb = p_blob_ntr_cfg->p_rcv_cb;
     p_node_tree->p_rcv_context = p_blob_ntr_cfg->p_rcv_context;
+    p_node_tree->b_new_data = 0;
 
     *pp_nts = p_node_tree;
     return BLOB_OK;
@@ -56,7 +58,7 @@ blob_node_tree_retrieve_init(blob_node_tree_retrieve **pp_nts, blob_ntr_cfg *p_b
 
 
 int
-blob_node_tree_send_start(blob_node_tree_send *p_nts, char *node_name)
+blob_node_tree_send_start(blob_node_tree_send *p_nts, const char *node_name)
 {
     blob_node *p_parent_temp;
     if (NULL == p_nts->p_cur_node)
@@ -103,19 +105,18 @@ blob_node_tree_send_flush(blob_node_tree_send *p_nts)
 {
     if (NULL == p_nts->p_cur_node->p_parent_node)
     {
-        FILE *p_file;
         size_t total_size;
         unsigned char *p_full_tree_blob;
         size_t total_size_copied;
 
         /* This is the root node */
-        blob_aggregate_data(p_nts->p_cur_node, &total_size);
+        blob_node_aggregate_data(p_nts->p_cur_node, &total_size);
         p_full_tree_blob = (unsigned char*)calloc(sizeof(unsigned char), total_size);
         memset(p_full_tree_blob, 0, total_size);
     
         total_size_copied = total_size;
         /* Now, serialise the data */
-        blob_assemble_data(p_nts->p_cur_node, p_full_tree_blob, &total_size_copied);
+        blob_node_assemble_data(p_nts->p_cur_node, p_full_tree_blob, &total_size_copied);
 
         /* All data be filled */
         assert(total_size_copied == 0);
@@ -130,13 +131,13 @@ blob_node_tree_send_flush(blob_node_tree_send *p_nts)
     {
         size_t this_blob_size = 0;
         unsigned char *p_data;
-        if (NULL != p_nts->p_cur_node->p_blob)
+        if (NULL != p_nts->p_cur_node)
         {
-            blob_get_data(p_nts->p_cur_node->p_blob, &p_data, &this_blob_size);
+            blob_node_get_data(p_nts->p_cur_node, &p_data, &this_blob_size);
         }
         else
         {
-            p_nts->p_cur_node->blob_size = 0;
+            this_blob_size = 0;
         }
         
         p_nts->p_cur_node->blob_size = this_blob_size;
@@ -157,10 +158,12 @@ blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name
     if (  (NULL == p_ntr->p_root_node) || (p_ntr->p_cur_node == p_ntr->p_root_node))
     {
         /* Root node */
-        /* Use the data stored in the buffer populated by the communication protocol. */
-
-        p_ntr->p_data = p_recv_data;
-        p_ntr->n_data = recv_total_size;
+        /* Receive data via the provided send callback */
+        p_ntr->p_rcv_cb(p_ntr->p_rcv_context, &p_ntr->p_data, &p_ntr->n_data);
+        if (NULL != p_ntr->p_data)
+        {
+            p_ntr->b_new_data = 1;
+        }
     }
     
     /* Pretty sure I don't need to maintain a variable called p_root_node here */
@@ -170,11 +173,11 @@ blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name
         {
             size_t total_size;
             /* Disassemble the data and create the node-tree */
-            blob_disassemble_data(&p_ntr->p_root_node, p_ntr->p_data, &total_size);
+            blob_node_disassemble_data(&p_ntr->p_root_node, p_ntr->p_data, &total_size);
 
             if (total_size != p_ntr->n_data)
             {
-                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", total_size, p_ntr->n_data);
+                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", (unsigned int)total_size, (unsigned int)p_ntr->n_data);
             }
             /* Could both be NULL, so update p_cur_node to the root node since disassemble will do the allocate */
             p_ntr->p_cur_node = p_ntr->p_root_node;
@@ -186,11 +189,11 @@ blob_node_tree_retrieve_start(blob_node_tree_retrieve *p_ntr, const char *p_name
             size_t total_size;
             
             /* Disassemble the data and create the node-tree */
-            blob_disassemble_data(&p_ntr->p_root_node, p_ntr->p_data, &total_size);
+            blob_node_disassemble_data(&p_ntr->p_root_node, p_ntr->p_data, &total_size);
             
             if (total_size != p_ntr->n_data)
             {
-                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", total_size, p_ntr->n_data);
+                printf("Error decoding packet; size mismatch. Decode size %u, data size %u.\n", (unsigned int)total_size, (unsigned int)p_ntr->n_data);
             }
 
             /* Could both be NULL, so update p_cur_node to the root node since disassemble will do the allocate */
@@ -255,19 +258,13 @@ blob_node_tree_unsigned_int_a(blob_node_tree_send *p_nts, const char *var_name, 
 }
 
 int
-blob_node_tree_unsigned_int_a(blob_node_tree_send *p_nts, const char *var_name, unsigned int *p_var_val, int n)
-{
-    return blob_node_unsigned_int_a(p_nts->p_cur_node, var_name, p_var_val, n);
-}
-
-int
 blob_node_tree_retrieve_float_a(blob_node_tree_retrieve *p_ntr, const char *var_name, const float **pp_var_val, int *p_n, int rep)
 {
     *p_n = 0;
     *pp_var_val = NULL;
     if ((NULL != p_ntr->p_data) && (NULL != p_ntr->p_cur_node))
     {
-        blob_node_retrieve_float_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+        blob_node_retrieve_float_a(p_ntr->p_cur_node, var_name, pp_var_val, p_n, rep);
     }
     return 0;
 }
@@ -279,7 +276,7 @@ blob_node_tree_retrieve_int_a(blob_node_tree_retrieve *p_ntr, const char *var_na
     *pp_var_val = NULL;
     if ((NULL != p_ntr->p_data) && (NULL != p_ntr->p_cur_node))
     {
-        blob_node_retrieve_int_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+        blob_node_retrieve_int_a(p_ntr->p_cur_node, var_name, pp_var_val, p_n, rep);
     }
     return 0;
 }
@@ -291,7 +288,7 @@ blob_node_tree_retrieve_unsigned_int_a(blob_node_tree_retrieve *p_ntr, const cha
     *pp_var_val = NULL;
     if ((NULL != p_ntr->p_data) && (NULL != p_ntr->p_cur_node))
     {
-        blob_node_retrieve_unsigned_int_a(blob_sr.p_cur_node->p_blob, var_name, pp_var_val, p_n, rep);
+        blob_node_retrieve_unsigned_int_a(p_ntr->p_cur_node, var_name, pp_var_val, p_n, rep);
     }
     return 0;
 }

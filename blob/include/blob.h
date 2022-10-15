@@ -1,3 +1,6 @@
+#ifndef BLOB_H
+#define BLOB_H
+
 #define BLOB_OK          (0)
 #define BLOB_ERR         (-1)
 
@@ -8,6 +11,23 @@
 
 typedef struct blob_s blob;
 blob *p_g_blob;
+
+#ifdef BLOB_ESP32_WEBSOCKETS
+    extern int _blob_espws_init(blob_comm_cfg*,const char*, int);
+    extern int _blob_espws_terminate(blob_comm_cfg*);
+    #define BLOB_INIT(address, port)                                   _blob_espws_init(&g_blob_ccfg, address, port); blob_init(&g_blob_ccfg)
+    #define BLOB_TERMINATE()                                           _blob_espws_terminate(&g_blob_ccfg)
+#elif BLOB_WEBSOCKETS
+    extern int _blob_minws_init(blob_comm_cfg*, const char*, int);
+    extern int _blob_minws_terminate(blob_comm_cfg*);
+    #define BLOB_INIT(address, port)                                   _blob_minws_init(&blob_comm_cfg, address, port); blob_init(&blob_comm_cfg)
+    #define BLOB_TERMINATE()                                           _blob_minws_terminate(&blob_comm_cfg)
+#elif BLOB_FILE
+   #define BLOB_INIT()                                                (void)
+   #define BLOB_TERMINATE()                                           (void)
+#endif
+
+
 
 /* Creates the blob file if not already created */
 #define BLOB_START(node_name)                                      blob_start(p_g_blob, node_name)
@@ -30,3 +50,5 @@ blob *p_g_blob;
 #define BLOB_RECEIVE_UNSIGNED_INT_A(var_name, pp_var_val, p_n, rep)        blob_retrieve_unsigned_int_a(p_g_blob, var_name, pp_var_val, p_n, rep)
 /* Flushes the memory. */
 #define BLOB_RECEIVE_FLUSH()                                               blob_retrieve_flush(p_g_blob)
+
+#endif

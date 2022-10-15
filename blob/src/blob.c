@@ -1,5 +1,7 @@
+#include <stdlib.h>
+
 #include "blob_node_tree.h"
-#include "blob.h"
+#include "blob/include/blob.h"
 #include "blob_comm.h"
 #include "blob_node.h"
 
@@ -9,20 +11,7 @@ struct blob_s
    blob_node_tree_retrieve *p_ntr;
 };
 
-#ifdef BLOB_ESP32_WEBSOCKETS
-    extern int _blob_espws_init(blob_comm_cfg*,const char*, int);
-    extern int _blob_espws_terminate(blob_comm_cfg*);
-    #define BLOB_INIT(address, port)                                   _blob_espws_init(&blob_comm_cfg, address, port); blob_init(&blob_comm_cfg)
-    #define BLOB_TERMINATE()                                           _blob_espws_terminate(&blob_comm_cfg)
-#elif BLOB_WEBSOCKETS
-    extern int _blob_minws_init(blob_comm_cfg*, const char*, int);
-    extern int _blob_minws_terminate(blob_comm_cfg*);
-    #define BLOB_INIT(address, port)                                   _blob_minws_init(&blob_comm_cfg, address, port)
-    #define BLOB_TERMINATE()                                           _blob_minws_terminate(&blob_comm_cfg)
-#elif BLOB_FILE
-   #define BLOB_INIT()                                                (void)
-   #define BLOB_TERMINATE()                                           (void)
-#endif
+blob_comm_cfg g_blob_ccfg;
 
 int
 blob_init(blob_comm_cfg *p_blob_comm_cfg)
@@ -38,8 +27,9 @@ blob_init(blob_comm_cfg *p_blob_comm_cfg)
         blob_ntr_cfg ntr_cfg;
         ntr_cfg.p_rcv_cb = p_blob_comm_cfg->p_rcv_cb;
         ntr_cfg.p_rcv_context = p_blob_comm_cfg->p_rcv_context;
-        blob_node_tree_receive_init(&p_g_blob->p_ntr, &ntr_cfg);
+        blob_node_tree_retrieve_init(&p_g_blob->p_ntr, &ntr_cfg);
     }
+    return BLOB_OK;
 }
 
 /* Creates the blob file if not already created */
@@ -85,21 +75,21 @@ blob_retrieve_start(blob *p_blob, const char* node_name)
 
 /* Appends an array of float values to a blob */
 int
-blob_retrieve_float_a(blob *p_blob, const char **var_name, const float **pp_var_val, int *p_n, int rep)
+blob_retrieve_float_a(blob *p_blob, const char *var_name, const float **pp_var_val, int *p_n, int rep)
 {
     return blob_node_tree_retrieve_float_a(p_blob->p_ntr, var_name, pp_var_val, p_n, rep);
 }
 
 /* Appends an array of int values to a blob */
 int
-blob_retrieve_int_a(blob *p_blob, const char **var_name, const int **pp_var_val, int *p_n, int rep)
+blob_retrieve_int_a(blob *p_blob, const char *var_name, const int **pp_var_val, int *p_n, int rep)
 {
     return blob_node_tree_retrieve_int_a(p_blob->p_ntr, var_name, pp_var_val, p_n, rep);
 }
 
 /* Appends an array of unsigned int values to a blob */
 int
-blob_retrieve_unsigned_int_a(blob *p_blob, const char **var_name, const unsigned int **pp_var_val, int *p_n, int rep)
+blob_retrieve_unsigned_int_a(blob *p_blob, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
 {
     return blob_node_tree_retrieve_unsigned_int_a(p_blob->p_ntr, var_name, pp_var_val, p_n, rep);
 }

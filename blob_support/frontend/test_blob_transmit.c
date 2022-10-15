@@ -1,3 +1,5 @@
+#define BLOB_WEBSOCKETS
+
 #include "blob/include/blob.h"
 #include <assert.h>
 #include <math.h>
@@ -27,7 +29,7 @@ main(int argc, char **argv)
     TCSANOW tells tcsetattr to change attributes immediately. */
     tcsetattr( STDIN_FILENO, TCSANOW, &newt);
 
-    BLOB_SOCKET_INIT("192.168.50.115", 8000);
+    BLOB_INIT("192.168.50.115", 8000);
     
     while (c = getchar())
     {

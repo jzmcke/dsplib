@@ -33,8 +33,8 @@ typedef struct minimal_websocket_s {
 
 static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len )
 {
-	minimal_websocket *p_min_ws;
-	unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 + LWS_SEND_BUFFER_POST_PADDING];
+	minimal_websocket *p_min_ws = NULL;
+	unsigned char *p_data;
 	switch( reason )
 	{
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -59,9 +59,10 @@ static int servicing_callback( struct lws *wsi, enum lws_callback_reasons reason
 			p_min_ws = (minimal_websocket*)lws_get_protocol(wsi)->user;
 			tx_rx_info *p_tx_rx_info = p_min_ws->p_tx_rx_info;
 			printf("Client writeable.\n");
-			lws_write( wsi, &p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING], p_tx_rx_info->n_tx_current_data, LWS_WRITE_BINARY );
+			p_data = (unsigned char*)p_tx_rx_info->p_tx_data;
+			lws_write( wsi, &p_data[LWS_SEND_BUFFER_PRE_PADDING], p_tx_rx_info->n_tx_current_data, LWS_WRITE_BINARY );
 
-			memset(&p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING], 0, p_tx_rx_info->n_tx_current_data);
+			memset(&p_data[LWS_SEND_BUFFER_PRE_PADDING], 0, p_tx_rx_info->n_tx_current_data);
 			p_tx_rx_info->n_tx_current_data = 0;
 			break;
 		case LWS_CALLBACK_CLOSED:
@@ -169,6 +170,7 @@ minimal_websocket_set_send_data(minimal_websocket *p_self,
 								size_t n_bytes
 								)
 {
+	unsigned char *p_tmp;
 	if (p_self->b_overwrite_on_send)
 	{
 		if (p_self->p_tx_rx_info->n_max_tx_data < n_bytes)
@@ -177,8 +179,9 @@ minimal_websocket_set_send_data(minimal_websocket *p_self,
 			assert(0);
 			return;
 		}
-		memset(&p_self->p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING], 0, p_self->p_tx_rx_info->n_tx_current_data);
-		memcpy(&p_self->p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING], p_data, n_bytes);
+		p_tmp = (unsigned char*)p_self->p_tx_rx_info->p_tx_data;
+		memset(&p_tmp[LWS_SEND_BUFFER_PRE_PADDING], 0, p_self->p_tx_rx_info->n_tx_current_data);
+		memcpy(&p_tmp[LWS_SEND_BUFFER_PRE_PADDING], p_data, n_bytes);
 		p_self->p_tx_rx_info->n_tx_current_data = n_bytes;
 	}
 	else
@@ -191,7 +194,8 @@ minimal_websocket_set_send_data(minimal_websocket *p_self,
 		}
 		else
 		{
-			memcpy(&p_self->p_tx_rx_info->p_tx_data[LWS_SEND_BUFFER_PRE_PADDING + p_self->p_tx_rx_info->n_tx_current_data], p_data, n_bytes);
+			p_tmp = (unsigned char*)p_self->p_tx_rx_info->p_tx_data;
+			memcpy(&p_tmp[LWS_SEND_BUFFER_PRE_PADDING + p_self->p_tx_rx_info->n_tx_current_data], p_data, n_bytes);
 			p_self->p_tx_rx_info->n_tx_current_data = (n_bytes + p_self->p_tx_rx_info->n_tx_current_data);
 		}
 	}

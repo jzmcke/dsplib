@@ -5,7 +5,6 @@ OBJS += $(GIT_ROOT)/blob/src/blob_node_tree.o
 OBJS += $(GIT_ROOT)/blob/src/blob_minws.o
 OBJS += $(GIT_ROOT)/blob/src/blob_espws.o
 OBJS += $(GIT_ROOT)/blob/src/blob.o
-OBJS += $(GIT_ROOT)/blob/src/blob_file.o
 OBJS += $(GIT_ROOT)/blob_support/frontend/test_blob_transmit.o
 OBJS += $(GIT_ROOT)/minimal_websocket/src/minimal_websocket.o
 INC = -I$(GIT_ROOT) -I/usr/local/opt/openssl/include
