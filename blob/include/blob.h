@@ -12,9 +12,7 @@ extern blob_comm_cfg g_blob_ccfg;
 extern blob *p_g_blob;
 
 /* Add the relevant define into the main.c/main.cpp, or makefile, of your project. */
-// #define BLOB_ESP32_WEBSOCKETS
-// #define BLOB_WEBSOCKETS
-// #define BLOB_FILE
+// Supported configs: BLOB_ESP32_WEBSOCKETS, BLOB_WEBSOCKETS, BLOB_FILE, BLOB_ESP32_UDP
 
 int
 blob_init(blob_comm_cfg *p_blob_comm_cfg);
@@ -56,6 +54,14 @@ blob_retrieve_flush(blob *p_blob);
     extern int _blob_espws_terminate(blob_comm_cfg*);
     #define BLOB_INIT(address, port)                                   _blob_espws_init(&g_blob_ccfg, address, port); blob_init(&g_blob_ccfg)
     #define BLOB_TERMINATE()                                           _blob_espws_terminate(&g_blob_ccfg)
+#endif
+
+
+#ifdef BLOB_ESP32_UDP
+    extern int _blob_udp_init(blob_comm_cfg*,const char*, int);
+    extern int _blob_udp_terminate(blob_comm_cfg*);
+    #define BLOB_INIT(address, port)                                   _blob_udp_init(&g_blob_ccfg, address, port); blob_init(&g_blob_ccfg)
+    #define BLOB_TERMINATE()                                           _blob_udp_terminate(&g_blob_ccfg)
 #endif
 
 #ifdef BLOB_WEBSOCKETS

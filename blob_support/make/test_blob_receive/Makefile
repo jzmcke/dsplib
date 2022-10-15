@@ -14,7 +14,7 @@ LD_LIBS=-lwebsockets -lssl -lcrypto
 
 DEBUG_OBJS = ${OBJS:.o=_debug.o}
 
-CFLAGS = -Wall -std=gnu99
+CFLAGS = -Wall -std=gnu99 -D BLOB_WEBSOCKETS
 
 CFLAGS_RELEASE = ${CFLAGS}
 CFLAGS_RELEASE += -O3

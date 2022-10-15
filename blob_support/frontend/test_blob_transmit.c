@@ -1,5 +1,3 @@
-#define BLOB_WEBSOCKETS
-
 #include "blob/include/blob.h"
 #include <assert.h>
 #include <math.h>

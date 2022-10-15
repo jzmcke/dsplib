@@ -1,4 +1,5 @@
 /* Responsible for send data callback, populating a shared receive data array and */
+#ifdef BLOB_ESP32_WEBSOCKETS
 #include "blob/include/blob.h"
 #include "blob/include/blob_comm.h"
 #include "esp_websocket_client.h"
@@ -128,3 +129,4 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         break;
     }
 }
+#endif

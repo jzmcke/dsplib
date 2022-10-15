@@ -1,10 +1,11 @@
 /* Responsible for send data callback, populating a shared receive data array and */
+#ifdef BLOB_WEBSOCKETS
 #include "blob/include/blob.h"
 #include "blob/include/blob_comm.h"
 #include "minimal_websocket/include/minimal_websocket.h"
 
 int
-_blob_minws_init(blob_comm_cfg *p_cfg, char *addr, int port);
+_blob_minws_init(blob_comm_cfg *p_cfg, const char *addr, int port);
 
 int
 _blob_minws_terminate(blob_comm_cfg *p_blob_comm_cfg);
@@ -21,11 +22,11 @@ typedef struct blob_minws_state_s
 } blob_minws_state;
 
 int
-_blob_minws_init(blob_comm_cfg *p_cfg, char *addr, int port)
+_blob_minws_init(blob_comm_cfg *p_cfg, const char *addr, int port)
 {
     minimal_websocket *p_minws;
     minimal_websocket_cfg cfg;
-    cfg.addr = addr;
+    cfg.addr = (char*)addr;
     cfg.port = port;
     cfg.max_tx_size = 16384 << 4;
     cfg.max_rx_size = 16384 << 4;
@@ -63,3 +64,4 @@ _blob_minws_rcv_callback(void *p_context, unsigned char **pp_recv_data, size_t *
     minimal_websocket_get_recv_data((minimal_websocket*)p_context, pp_recv_data, p_recv_total_size);
     return 0;
 };
+#endif
