@@ -1,9 +1,8 @@
 #include "blob_core.h"
-#include "bitstream/include/bitstream.h"
 #include <stdlib.h>
 #include <assert.h>
 
-struct blob_s
+struct blob_core_s
 {
     int             n_vars_in_blob;
     char            aa_var_names[BLOB_MAX_VARS_PER_BLOB][BLOB_MAX_VAR_NAME_LEN];
@@ -21,9 +20,9 @@ struct blob_s
 };
 
 int
-blob_init(blob **pp_blob, blob_cfg *p_cfg)
+blob_core_init(blob_core **pp_blob, blob_cfg *p_cfg)
 {
-    *pp_blob = (blob*)calloc(sizeof(blob), 1);
+    *pp_blob = (blob_core*)calloc(sizeof(blob_core), 1);
     (*pp_blob)->n_vars_in_blob = 0;
     (*pp_blob)->var_idx = 0;
     (*pp_blob)->n_repetitions = 0;
@@ -42,9 +41,9 @@ blob_init(blob **pp_blob, blob_cfg *p_cfg)
 }
 
 int
-blob_close(blob **pp_blob)
+blob_core_close(blob_core **pp_blob)
 {
-    blob *p_blob = *pp_blob;
+    blob_core *p_blob = *pp_blob;
     if (p_blob != NULL)
     {
         if (NULL != p_blob->p_root_blob_data)
@@ -59,7 +58,7 @@ blob_close(blob **pp_blob)
 }
 
 int
-blob_float_a(blob *p_blob, const char *p_var_name, float *p_var_val, int n)
+blob_core_float_a(blob_core *p_blob, const char *p_var_name, float *p_var_val, int n)
 {
     unsigned char *p_var_data;
     if (  (p_blob->var_idx == p_blob->n_vars_in_blob)
@@ -132,7 +131,7 @@ blob_float_a(blob *p_blob, const char *p_var_name, float *p_var_val, int n)
 }
 
 int
-blob_int_a(blob *p_blob, const char *p_var_name, int *p_var_val, int n)
+blob_core_int_a(blob_core *p_blob, const char *p_var_name, int *p_var_val, int n)
 {
     unsigned char *p_var_data;
     
@@ -203,7 +202,7 @@ blob_int_a(blob *p_blob, const char *p_var_name, int *p_var_val, int n)
 }
 
 int
-blob_unsigned_int_a(blob *p_blob, const char *p_var_name, unsigned int *p_var_val, int n)
+blob_core_unsigned_int_a(blob_core *p_blob, const char *p_var_name, unsigned int *p_var_val, int n)
 {
     unsigned char *p_var_data;
 
@@ -274,19 +273,19 @@ blob_unsigned_int_a(blob *p_blob, const char *p_var_name, unsigned int *p_var_va
 }
 
 void
-blob_get_data(blob *p_blob, unsigned char **pp_data, size_t *base_blob_size)
+blob_core_get_data(blob_core *p_blob, unsigned char **pp_data, size_t *base_blob_size)
 {
     *pp_data = p_blob->p_root_blob_data;
     *base_blob_size = p_blob->total_blob_size;
 }
 
 void
-blob_get_info(blob *p_blob,
-              int  **pp_var_len,
-              int  **pp_var_types,
-              char **pp_var_names,
-              int  *n_vars,
-              int  *n_repetitions)
+blob_core_get_info(blob_core *p_blob,
+                   int  **pp_var_len,
+                   int  **pp_var_types,
+                   char **pp_var_names,
+                   int  *n_vars,
+                   int  *n_repetitions)
 {
     char (*pointer)[BLOB_MAX_VAR_NAME_LEN] = p_blob->aa_var_names;
     *pp_var_len = p_blob->a_var_len;
@@ -297,9 +296,9 @@ blob_get_info(blob *p_blob,
 }
 
 size_t
-blob_set_from_data(blob *p_blob,
-                   char *p_data,
-                   size_t *p_total_size)
+blob_core_set_from_data(blob_core *p_blob,
+                        char *p_data,
+                        size_t *p_total_size)
 {
     size_t total_size = 0;
     unsigned int offset = 0;
@@ -352,19 +351,19 @@ blob_set_from_data(blob *p_blob,
 }
 
 size_t
-blob_get_serialized_data_size(blob *p_blob)
+blob_core_get_serialized_data_size(blob_core *p_blob)
 {
     return p_blob->serialized_data_size;
 }
 
 void
-blob_update_root_data(blob *p_blob, char *p_data)
+blob_core_update_root_data(blob_core *p_blob, char *p_data)
 {
     p_blob->p_root_blob_data = p_data + 2 * sizeof(int) + p_blob->n_vars_in_blob * (sizeof(char) * BLOB_MAX_VAR_NAME_LEN + sizeof(int) + sizeof(int));
 }
 
 int
-blob_retrieve_float_a(blob *p_blob, const char *var_name, const float **pp_var_val, int *p_n, int rep)
+blob_core_retrieve_float_a(blob_core *p_blob, const char *var_name, const float **pp_var_val, int *p_n, int rep)
 {
     int i;
     int var_idx = -1;
@@ -387,7 +386,7 @@ blob_retrieve_float_a(blob *p_blob, const char *var_name, const float **pp_var_v
 }
 
 int
-blob_retrieve_int_a(blob *p_blob, const char *var_name, const int **pp_var_val, int *p_n, int rep)
+blob_core_retrieve_int_a(blob_core *p_blob, const char *var_name, const int **pp_var_val, int *p_n, int rep)
 {
     int i;
     int var_idx = -1;
@@ -410,7 +409,7 @@ blob_retrieve_int_a(blob *p_blob, const char *var_name, const int **pp_var_val, 
 }
 
 int
-blob_retrieve_unsigned_int_a(blob *p_blob, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
+blob_core_retrieve_unsigned_int_a(blob_core *p_blob, const char *var_name, const unsigned int **pp_var_val, int *p_n, int rep)
 {
     int i;
     int var_idx = -1;
@@ -430,4 +429,31 @@ blob_retrieve_unsigned_int_a(blob *p_blob, const char *var_name, const unsigned 
     }
     *pp_var_val = (const unsigned int*)(p_blob->p_root_blob_data + rep * p_blob->base_blob_size + p_blob->a_var_data_offsets[var_idx]);
     *p_n = p_blob->a_var_len[var_idx];
+}
+
+int
+blob_core_header_get_size(blob_core *p_blob, size_t *p_size)
+{
+    int *p_var_len;
+    int *p_var_types;
+    char *p_var_names;
+    int n_vars;
+    int n_repetitions;
+    size_t total_size = 0;
+
+    /* All blobs are the same, just with different data */
+    blob_core_get_info(p_blob,
+                  &p_var_len,
+                  &p_var_types,
+                  &p_var_names,
+                  &n_vars,
+                  &n_repetitions);
+
+    total_size += n_vars * sizeof(int); /* Store the length of each variable */
+    total_size += n_vars * sizeof(int); /* Store the types of each variable */
+    total_size += n_vars * sizeof(char) * BLOB_MAX_VAR_NAME_LEN; /* Store the variable names */
+    total_size += sizeof(int); /* Store the number of variables in the blob */
+    total_size += sizeof(int); /* Store the number of repetititions of the variables in the blob */
+    *p_size = total_size;
+    return 0;
 }
