@@ -41,12 +41,14 @@ fft_forward_process
     ,int N
     )
 {
-    float p_scratch[2*DFT_MAX_SAMPLES] = {0};
+    float *p_scratch = calloc(2*DFT_MAX_SAMPLES, sizeof(float));
+    if (p_scratch == NULL) return DFT_ERROR;
     _fft_core_process(p_in,p_out,N,1,p_scratch);
     for (int i=0; i<2*N; i+=2)
     {
         re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
     }
+    free(p_scratch);
     return DFT_OK;
 }
 
@@ -116,12 +118,14 @@ fft_inverse_process
     ,int N
     )
 {
-    float p_scratch[2*DFT_MAX_SAMPLES] = {0};
+    float *p_scratch = calloc(2*DFT_MAX_SAMPLES, sizeof(float));
+    if (p_scratch == NULL) return DFT_ERROR;
     _ifft_core_process(p_in,p_out,N,1,p_scratch);
     for (int i=0; i<2*N; i+=2)
     {
         re_cplx_mult(1.0/sqrt(N),&p_out[i],&p_out[i]);
     }
+    free(p_scratch);
     return DFT_OK;
 }
 

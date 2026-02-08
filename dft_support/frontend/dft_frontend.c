@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 
+#ifdef HAVE_SNDFILE
 #include "sndfile.h"
+#endif
 #include "util/include/util.h"
 #include "dft/include/dft.h"
 #include "dft/include/file.h"
@@ -46,8 +48,10 @@ main
     char p_write_name[1024];
     int ret;
     dft_cfg cfg;
+#ifdef HAVE_SNDFILE
     SNDFILE *s1, *s2;
     SF_INFO wav_cfg;
+#endif
 
     ret = parse_args(argc,argv,&cfg);
 
@@ -58,17 +62,22 @@ main
     }
     sig_len = (unsigned int)(cfg.t_secs*SAMPLE_RATE);
 
+    unsigned int n_fft = 1;
+    while (n_fft < sig_len) n_fft <<= 1;
+
+#ifdef HAVE_SNDFILE
     wav_cfg.frames = cfg.t_secs;
     wav_cfg.samplerate = SAMPLE_RATE;
     wav_cfg.channels = 1;
     wav_cfg.format = SF_FORMAT_WAV|SF_FORMAT_FLOAT;
     wav_cfg.sections = 1;
     wav_cfg.seekable = 0;
+#endif
 
-    p_in = calloc(2*sig_len,sizeof(float));
-    p_dft = calloc(2*sig_len,sizeof(float));
-    p_inv = calloc(2*sig_len,sizeof(float));
-    p_write_buf = calloc(sig_len,sizeof(float));
+    p_in = calloc(2*n_fft,sizeof(float));
+    p_dft = calloc(2*n_fft,sizeof(float));
+    p_inv = calloc(2*n_fft,sizeof(float));
+    p_write_buf = calloc(n_fft,sizeof(float));
 
     /* Delta function */
     if (0 == strcmp(cfg.p_type,"delta"))
@@ -95,13 +104,16 @@ main
 
     strcpy(p_write_name,cfg.p_output_name);
 
+    sprintf(p_write_name, "%s_in", cfg.p_output_name);
     file_write_cplx_data
-        (strcat(p_write_name,"_in")
+        (p_write_name
         ,p_in
         ,sig_len
         );
 
-    s1 = sf_open(strcat(p_write_name,".wav"), SFM_WRITE, &wav_cfg);
+#ifdef HAVE_SNDFILE
+    sprintf(p_write_name, "%s_in.wav", cfg.p_output_name);
+    s1 = sf_open(p_write_name, SFM_WRITE, &wav_cfg);
 
     for (int i=0; i<sig_len; i++)
     {
@@ -110,20 +122,28 @@ main
     }
 
     sf_writef_float(s1,p_write_buf,sig_len);
-    
-    fft_forward_process(p_in,p_dft,sig_len);
+    sf_close(s1);
+#endif
 
-    strcpy(p_write_name,cfg.p_output_name);
+    printf("FFT size: %u (padded from %u)\n", n_fft, sig_len);
+    fft_forward_process(p_in,p_dft,n_fft);
+
+    sprintf(p_write_name, "%s_dft", cfg.p_output_name);
     file_write_cplx_data
-        (strcat(p_write_name,"_dft")
+        (p_write_name
         ,p_dft
-        ,sig_len
+        ,n_fft
         );
 
-    fft_inverse_process(p_dft,p_inv,sig_len);
+    fft_inverse_process(p_dft,p_inv,n_fft);
 
 
-    strcpy(p_write_name,cfg.p_output_name);
+    sprintf(p_write_name, "%s_inv", cfg.p_output_name);
+    file_write_cplx_data
+        (p_write_name
+        ,p_inv
+        ,n_fft
+        );
 
     for (int i=0; i<sig_len; i++)
     {
@@ -131,15 +151,19 @@ main
         p_write_buf[i] = p_inv[2*i];
     }
 
-    file_write_cplx_data
-        (strcat(p_write_name,"_inv")
-        ,p_inv
-        ,sig_len
-        );
-
-    s2 = sf_open(strcat(p_write_name,".wav"), SFM_WRITE, &wav_cfg);
+#ifdef HAVE_SNDFILE
+    sprintf(p_write_name, "%s_inv.wav", cfg.p_output_name);
+    s2 = sf_open(p_write_name, SFM_WRITE, &wav_cfg);
     sf_writef_float(s2,p_write_buf,sig_len);
+    sf_close(s2);
+#endif
 
+    free(p_in);
+    free(p_dft);
+    free(p_inv);
+    free(p_write_buf);
+
+    return 0;
 }
 
 void
